@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 250, 250, 249;
+  --background-end-rgb: 245, 245, 244;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Session grid styles */
+.session-grid {
+  display: grid;
+  gap: 1px;
+  background-color: #e5e7eb;
+}
+
+.session-cell {
+  min-height: 60px;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.session-cell:hover {
+  background-color: #fef2f2;
+}
+
+.session-item {
+  @apply rounded-lg p-2 text-xs font-medium shadow-sm transition-all duration-200;
+}
+
+.session-item:hover {
+  @apply shadow-md scale-[1.02];
+}
+
+/* Time slot styling */
+.time-slot {
+  @apply text-xs font-medium text-stone-500 whitespace-nowrap;
+}
+
+/* Court header styling */
+.court-header {
+  @apply font-semibold text-sm text-center py-3 bg-gradient-to-b from-stone-100 to-stone-50 border-b border-stone-200;
+}
