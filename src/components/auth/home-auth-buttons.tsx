@@ -17,12 +17,6 @@ export function HomeAuthButtons() {
   if (user || isGuest) {
     return (
       <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard"
-          className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors text-sm font-medium"
-        >
-          Dashboard
-        </Link>
         <button
           onClick={() => signOut()}
           className="px-4 py-2 text-red-200 hover:text-white transition-colors text-sm"
