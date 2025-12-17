@@ -6,6 +6,13 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type UserRole = 'player' | 'coach' | 'admin'
+export type GoalType = 'practice' | 'strength' | 'conditioning' | 'flexibility'
+export type GoalStatus = 'active' | 'completed' | 'paused' | 'cancelled'
+export type MatchResult = 'win' | 'loss' | 'walkover' | 'retired'
+export type MatchType = 'singles' | 'doubles'
+export type FitnessCategory = 'strength' | 'conditioning' | 'flexibility' | 'mobility'
+
 export interface Database {
   public: {
     Tables: {
@@ -21,6 +28,7 @@ export interface Database {
           contact_phone: string | null
           status: string
           notes: string | null
+          primary_coach_id: string | null
         }
         Insert: {
           id?: string
@@ -33,6 +41,7 @@ export interface Database {
           contact_phone?: string | null
           status?: string
           notes?: string | null
+          primary_coach_id?: string | null
         }
         Update: {
           id?: string
@@ -45,6 +54,7 @@ export interface Database {
           contact_phone?: string | null
           status?: string
           notes?: string | null
+          primary_coach_id?: string | null
         }
       }
       coaches: {
@@ -245,6 +255,299 @@ export interface Database {
           status?: string
         }
       }
+      user_profiles: {
+        Row: {
+          id: string
+          created_at: string
+          email: string
+          full_name: string | null
+          role: UserRole
+          player_id: string | null
+          coach_id: string | null
+          avatar_url: string | null
+        }
+        Insert: {
+          id: string
+          created_at?: string
+          email: string
+          full_name?: string | null
+          role: UserRole
+          player_id?: string | null
+          coach_id?: string | null
+          avatar_url?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          role?: UserRole
+          player_id?: string | null
+          coach_id?: string | null
+          avatar_url?: string | null
+        }
+      }
+      player_coach_assignments: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          coach_id: string
+          is_primary: boolean
+          assigned_at: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          coach_id: string
+          is_primary?: boolean
+          assigned_at?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          coach_id?: string
+          is_primary?: boolean
+          assigned_at?: string
+        }
+      }
+      goals: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          goal_type: GoalType
+          title: string
+          description: string | null
+          target_value: number | null
+          target_unit: string | null
+          current_value: number
+          target_date: string | null
+          status: GoalStatus
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          goal_type: GoalType
+          title: string
+          description?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          current_value?: number
+          target_date?: string | null
+          status?: GoalStatus
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          goal_type?: GoalType
+          title?: string
+          description?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          current_value?: number
+          target_date?: string | null
+          status?: GoalStatus
+          completed_at?: string | null
+        }
+      }
+      goal_progress: {
+        Row: {
+          id: string
+          created_at: string
+          goal_id: string
+          recorded_at: string
+          value: number
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          goal_id: string
+          recorded_at?: string
+          value: number
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          goal_id?: string
+          recorded_at?: string
+          value?: number
+          notes?: string | null
+        }
+      }
+      session_ratings: {
+        Row: {
+          id: string
+          created_at: string
+          session_id: string
+          player_id: string
+          rated_by: string | null
+          overall_rating: number | null
+          effort_rating: number | null
+          technique_rating: number | null
+          attitude_rating: number | null
+          tactical_rating: number | null
+          notes: string | null
+          duration_minutes: number | null
+          intensity_level: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          session_id: string
+          player_id: string
+          rated_by?: string | null
+          overall_rating?: number | null
+          effort_rating?: number | null
+          technique_rating?: number | null
+          attitude_rating?: number | null
+          tactical_rating?: number | null
+          notes?: string | null
+          duration_minutes?: number | null
+          intensity_level?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          session_id?: string
+          player_id?: string
+          rated_by?: string | null
+          overall_rating?: number | null
+          effort_rating?: number | null
+          technique_rating?: number | null
+          attitude_rating?: number | null
+          tactical_rating?: number | null
+          notes?: string | null
+          duration_minutes?: number | null
+          intensity_level?: number | null
+        }
+      }
+      match_results: {
+        Row: {
+          id: string
+          created_at: string
+          tournament_id: string
+          player_id: string
+          opponent_name: string
+          opponent_ranking: string | null
+          round: string | null
+          match_date: string
+          result: MatchResult
+          score: string
+          first_serve_pct: number | null
+          aces: number
+          double_faults: number
+          winners: number
+          unforced_errors: number
+          break_points_won: number
+          break_points_faced: number
+          holds: number
+          breaks: number
+          notes: string | null
+          match_type: MatchType
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          tournament_id: string
+          player_id: string
+          opponent_name: string
+          opponent_ranking?: string | null
+          round?: string | null
+          match_date: string
+          result: MatchResult
+          score: string
+          first_serve_pct?: number | null
+          aces?: number
+          double_faults?: number
+          winners?: number
+          unforced_errors?: number
+          break_points_won?: number
+          break_points_faced?: number
+          holds?: number
+          breaks?: number
+          notes?: string | null
+          match_type?: MatchType
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          tournament_id?: string
+          player_id?: string
+          opponent_name?: string
+          opponent_ranking?: string | null
+          round?: string | null
+          match_date?: string
+          result?: MatchResult
+          score?: string
+          first_serve_pct?: number | null
+          aces?: number
+          double_faults?: number
+          winners?: number
+          unforced_errors?: number
+          break_points_won?: number
+          break_points_faced?: number
+          holds?: number
+          breaks?: number
+          notes?: string | null
+          match_type?: MatchType
+        }
+      }
+      fitness_logs: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          log_date: string
+          category: FitnessCategory
+          exercise_name: string
+          sets: number | null
+          reps: number | null
+          weight_kg: number | null
+          duration_seconds: number | null
+          distance_meters: number | null
+          notes: string | null
+          rpe: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          log_date?: string
+          category: FitnessCategory
+          exercise_name: string
+          sets?: number | null
+          reps?: number | null
+          weight_kg?: number | null
+          duration_seconds?: number | null
+          distance_meters?: number | null
+          notes?: string | null
+          rpe?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          log_date?: string
+          category?: FitnessCategory
+          exercise_name?: string
+          sets?: number | null
+          reps?: number | null
+          weight_kg?: number | null
+          duration_seconds?: number | null
+          distance_meters?: number | null
+          notes?: string | null
+          rpe?: number | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -266,3 +569,27 @@ export type Session = Database['public']['Tables']['sessions']['Row']
 export type SessionPlayer = Database['public']['Tables']['session_players']['Row']
 export type Tournament = Database['public']['Tables']['tournaments']['Row']
 export type TournamentAssignment = Database['public']['Tables']['tournament_assignments']['Row']
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
+export type PlayerCoachAssignment = Database['public']['Tables']['player_coach_assignments']['Row']
+export type Goal = Database['public']['Tables']['goals']['Row']
+export type GoalProgress = Database['public']['Tables']['goal_progress']['Row']
+export type SessionRating = Database['public']['Tables']['session_ratings']['Row']
+export type MatchResultRecord = Database['public']['Tables']['match_results']['Row']
+export type FitnessLog = Database['public']['Tables']['fitness_logs']['Row']
+
+// Extended types with relations
+export type PlayerWithCoach = Player & {
+  primary_coach?: Coach | null
+}
+
+export type GoalWithProgress = Goal & {
+  progress?: GoalProgress[]
+}
+
+export type SessionWithRating = Session & {
+  rating?: SessionRating | null
+}
+
+export type MatchResultWithTournament = MatchResultRecord & {
+  tournament?: Tournament
+}
