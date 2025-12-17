@@ -14,6 +14,7 @@ const GUEST_PROFILE: UserProfile = {
   player_id: null,
   coach_id: 'guest-coach-id',
   created_at: new Date().toISOString(),
+  avatar_url: null,
 }
 
 interface AuthContextType {
