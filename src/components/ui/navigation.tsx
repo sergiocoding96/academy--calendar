@@ -42,7 +42,7 @@ export function Navigation() {
 
   const handleGuestLogin = () => {
     signInAsGuest()
-    router.push('/dashboard')
+    router.push('/sessions')
   }
 
   const handleSignOut = () => {

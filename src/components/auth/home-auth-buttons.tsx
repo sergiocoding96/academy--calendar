@@ -10,7 +10,7 @@ export function HomeAuthButtons() {
 
   const handleGuestLogin = () => {
     signInAsGuest()
-    router.push('/dashboard')
+    router.push('/sessions')
   }
 
   const handleSignOut = () => {

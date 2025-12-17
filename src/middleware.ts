@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   const isGuestMode = request.cookies.get('isGuest')?.value === 'true'
 
   // Protected routes - redirect to home if not in guest mode
-  const protectedRoutes = ['/dashboard', '/settings']
+  const protectedRoutes = ['/settings']
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
