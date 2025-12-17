@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3 } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/auth-provider'
 import { useState, useRef, useEffect } from 'react'
@@ -19,7 +19,8 @@ const publicNavItems = [
 
 export function Navigation() {
   const pathname = usePathname()
-  const { user, profile, signOut, loading } = useAuth()
+  const router = useRouter()
+  const { user, profile, signOut, signInAsGuest, loading, isGuest } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -34,22 +35,27 @@ export function Navigation() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Don't show navigation on auth pages
-  if (pathname?.startsWith('/login') || pathname?.startsWith('/register')) {
-    return null
-  }
-
   // Don't show public navigation on dashboard pages
   if (pathname?.startsWith('/dashboard')) {
     return null
   }
 
+  const handleGuestLogin = () => {
+    signInAsGuest()
+    router.push('/dashboard')
+  }
+
+  const handleSignOut = () => {
+    setDropdownOpen(false)
+    signOut()
+    router.push('/')
+  }
+
   const getInitials = () => {
-    if (profile?.player_id) {
-      // This would need actual player name - using email for now
-      return user?.email?.substring(0, 2).toUpperCase() || 'U'
+    if (profile?.full_name) {
+      return profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     }
-    return user?.email?.substring(0, 2).toUpperCase() || 'U'
+    return user?.email?.substring(0, 2).toUpperCase() || 'G'
   }
 
   return (
@@ -95,7 +101,7 @@ export function Navigation() {
             {/* Auth Section */}
             {!loading && (
               <>
-                {user ? (
+                {user || isGuest ? (
                   <div className="relative ml-2" ref={dropdownRef}>
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -116,10 +122,10 @@ export function Navigation() {
                         {/* User Info */}
                         <div className="px-4 py-2 border-b border-stone-100">
                           <p className="text-sm font-medium text-stone-800 truncate">
-                            {user.email}
+                            {profile?.full_name || 'Guest User'}
                           </p>
                           <p className="text-xs text-stone-500 capitalize">
-                            {profile?.role || 'User'}
+                            {profile?.role || 'Guest'}
                           </p>
                         </div>
 
@@ -135,10 +141,7 @@ export function Navigation() {
 
                         <div className="border-t border-stone-100 mt-2 pt-2">
                           <button
-                            onClick={() => {
-                              setDropdownOpen(false)
-                              signOut()
-                            }}
+                            onClick={handleSignOut}
                             className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                           >
                             <LogOut className="w-4 h-4" />
@@ -149,20 +152,13 @@ export function Navigation() {
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 ml-2">
-                    <Link
-                      href="/login"
-                      className="px-4 py-2 text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors"
-                    >
-                      Sign in
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Get Started
-                    </Link>
-                  </div>
+                  <button
+                    onClick={handleGuestLogin}
+                    className="flex items-center gap-2 ml-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Enter as Guest
+                  </button>
                 )}
               </>
             )}

@@ -1,65 +1,26 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { UserProfile, UserRole } from '@/types/database'
+
+// Simplified auth helpers for guest-only mode
+// These functions return null/redirect since there's no real authentication
 
 export async function getUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-
-  if (error || !user) {
-    return null
-  }
-
-  return user
+  return null
 }
 
-export async function getUserProfile(): Promise<UserProfile | null> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return null
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile) {
-    return null
-  }
-
-  return profile
+export async function getUserProfile() {
+  return null
 }
 
 export async function requireAuth() {
-  const user = await getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  return user
+  // In guest-only mode, redirect to home if not authenticated
+  redirect('/')
 }
 
-export async function requireRole(allowedRoles: UserRole[]) {
-  const profile = await getUserProfile()
-
-  if (!profile) {
-    redirect('/login')
-  }
-
-  if (!allowedRoles.includes(profile.role)) {
-    redirect('/dashboard')
-  }
-
-  return profile
+export async function requireRole(allowedRoles: string[]) {
+  // In guest-only mode, redirect to home
+  redirect('/')
 }
 
 export async function signOut() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  redirect('/login')
+  redirect('/')
 }
