@@ -380,6 +380,7 @@ const TennisAnalysisDashboard = () => {
       yellow: 'bg-yellow-500',
       blue: 'bg-blue-500',
       orange: 'bg-orange-500',
+      purple: 'bg-purple-500',
     }
     const textColors = {
       red: 'text-red-600',
@@ -387,6 +388,7 @@ const TennisAnalysisDashboard = () => {
       yellow: 'text-yellow-600',
       blue: 'text-blue-600',
       orange: 'text-orange-600',
+      purple: 'text-purple-600',
     }
     return (
       <div className="flex items-center gap-2">
@@ -405,6 +407,7 @@ const TennisAnalysisDashboard = () => {
       red: 'border-red-300',
       yellow: 'border-yellow-300',
       blue: 'border-blue-300',
+      purple: 'border-purple-300',
     }
     return (
       <div className={`bg-white rounded-2xl p-5 border ${borderColors[color]} shadow-sm`}>

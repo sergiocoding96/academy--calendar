@@ -543,7 +543,6 @@ export default function EmotionalRoutineBuilder() {
         </div>
       )}
       </div>
-    </div>
     </>
   )
 }
