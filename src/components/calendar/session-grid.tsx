@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns'
 import { cn, generateTimeSlots, getCoachColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/components/auth/auth-provider'
+import { MOCK_CALENDAR_SESSIONS } from '@/lib/mock-data'
 import type { Session, Coach, Court, Player } from '@/types/database'
 
 interface SessionWithDetails extends Session {
@@ -25,6 +27,7 @@ const COURTS = [
 const TIME_SLOTS = generateTimeSlots(7, 21)
 
 export function SessionGrid() {
+  const { isGuest } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date())
   const [sessions, setSessions] = useState<SessionWithDetails[]>([])
@@ -33,12 +36,26 @@ export function SessionGrid() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
-  // Fetch sessions from Supabase
+  // Fetch sessions from Supabase or use mock data for guest
   useEffect(() => {
     async function fetchSessions() {
       setLoading(true)
-      const supabase = createClient()
 
+      // Use mock data for guest users
+      if (isGuest) {
+        const dateStr = format(selectedDay, 'yyyy-MM-dd')
+        const mockSessionsForDay = MOCK_CALENDAR_SESSIONS.filter(
+          (session) => session.date === dateStr
+        ).map((session) => ({
+          ...session,
+          players: session.players,
+        })) as SessionWithDetails[]
+        setSessions(mockSessionsForDay)
+        setLoading(false)
+        return
+      }
+
+      const supabase = createClient()
       const dateStr = format(selectedDay, 'yyyy-MM-dd')
 
       const { data, error } = await supabase
@@ -57,7 +74,7 @@ export function SessionGrid() {
       if (error) {
         console.error('Error fetching sessions:', error)
       } else {
-        const sessionsWithPlayers = data?.map(session => ({
+        const sessionsWithPlayers = data?.map((session: any) => ({
           ...session,
           players: session.session_players?.map((sp: any) => sp.player).filter(Boolean)
         })) || []
@@ -68,7 +85,7 @@ export function SessionGrid() {
     }
 
     fetchSessions()
-  }, [selectedDay])
+  }, [selectedDay, isGuest])
 
   const getSessionsForSlot = (courtId: string, timeSlot: string) => {
     return sessions.filter(session => {

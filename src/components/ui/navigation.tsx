@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calendar, Trophy, Users, Settings, Home, LogOut, User, LayoutDashboard, ChevronDown, Heart, Brain, BarChart3 } from 'lucide-react'
+import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/auth-provider'
 import { useState, useRef, useEffect } from 'react'
@@ -42,13 +42,6 @@ export function Navigation() {
   // Don't show public navigation on dashboard pages
   if (pathname?.startsWith('/dashboard')) {
     return null
-  }
-
-  const getDashboardLink = () => {
-    if (!profile) return '/dashboard'
-    if (profile.role === 'coach') return '/dashboard/coach'
-    if (profile.role === 'player') return '/dashboard/player'
-    return '/dashboard'
   }
 
   const getInitials = () => {
@@ -129,16 +122,6 @@ export function Navigation() {
                             {profile?.role || 'User'}
                           </p>
                         </div>
-
-                        {/* Dashboard Link */}
-                        <Link
-                          href={getDashboardLink()}
-                          onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                        >
-                          <LayoutDashboard className="w-4 h-4" />
-                          Dashboard
-                        </Link>
 
                         {/* Settings */}
                         <Link

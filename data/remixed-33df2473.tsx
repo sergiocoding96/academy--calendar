@@ -196,13 +196,13 @@ const optionConfig = {
 export default function TennisCalendar() {
   const [selectedWeek, setSelectedWeek] = useState("Week 4");
   const [selectedCategory, setSelectedCategory] = useState("U16/U18");
-  const [hoveredCard, setHoveredCard] = useState(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   const weeks = Object.keys(tournamentData);
   const categories = ["U12/U14", "U16/U18", "Adults"];
   
-  const currentWeekData = tournamentData[selectedWeek];
-  const tournaments = currentWeekData?.categories[selectedCategory] || [];
+  const currentWeekData = tournamentData[selectedWeek as keyof typeof tournamentData];
+  const tournaments = currentWeekData?.categories[selectedCategory as keyof typeof currentWeekData.categories] || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-stone-50 to-stone-100 relative overflow-hidden">
@@ -278,7 +278,7 @@ export default function TennisCalendar() {
               {weeks.map((week, idx) => {
                 const weekNum = week.replace("Week ", "");
                 const isSelected = selectedWeek === week;
-                const hasEvents = Object.values(tournamentData[week].categories).some(cat => cat.length > 0);
+                const hasEvents = Object.values(tournamentData[week as keyof typeof tournamentData].categories).some(cat => cat.length > 0);
                 
                 return (
                   <button
@@ -349,7 +349,7 @@ export default function TennisCalendar() {
             <div className="flex gap-2">
               {categories.map((cat) => {
                 const isActive = selectedCategory === cat;
-                const count = currentWeekData.categories[cat]?.length || 0;
+                const count = currentWeekData.categories[cat as keyof typeof currentWeekData.categories]?.length || 0;
                 
                 return (
                   <button
@@ -393,7 +393,7 @@ export default function TennisCalendar() {
             ) : (
               <div className="grid gap-4">
                 {tournaments.map((tournament, idx) => {
-                  const config = optionConfig[tournament.type];
+                  const config = optionConfig[tournament.type as keyof typeof optionConfig];
                   const isHovered = hoveredCard === idx;
                   
                   return (
@@ -404,7 +404,7 @@ export default function TennisCalendar() {
                       className={`
                         group relative rounded-2xl overflow-hidden transition-all duration-500 cursor-pointer
                         ${isHovered ? 'scale-[1.02] shadow-2xl' : 'shadow-lg'}
-                        ${tournament.highlight ? 'ring-2 ring-red-400 ring-offset-2 ring-offset-white' : ''}
+                        ${(tournament as { highlight?: boolean }).highlight ? 'ring-2 ring-red-400 ring-offset-2 ring-offset-white' : ''}
                       `}
                     >
                       {/* Card gradient background */}
@@ -427,7 +427,7 @@ export default function TennisCalendar() {
                               <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs font-bold tracking-wider">
                                 {config.label}
                               </span>
-                              {tournament.highlight && (
+                              {(tournament as { highlight?: boolean }).highlight && (
                                 <span className="px-3 py-1 bg-yellow-400/90 rounded-lg text-yellow-900 text-xs font-bold flex items-center gap-1">
                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />

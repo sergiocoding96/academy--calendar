@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, MapPin, Users, Star } from 'lucide-react'
 import { format, startOfWeek, addWeeks, getWeek } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/components/auth/auth-provider'
+import { MOCK_CALENDAR_TOURNAMENTS } from '@/lib/mock-data'
 import type { Tournament, TournamentAssignment, Coach, Player } from '@/types/database'
 
 interface TournamentWithDetails extends Tournament {
@@ -35,6 +37,7 @@ const optionConfig: Record<string, { gradient: string; glow: string; label: stri
 const categories = ['U12/U14', 'U16/U18', 'Adults']
 
 export function TournamentCalendar() {
+  const { isGuest } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedWeek, setSelectedWeek] = useState(getWeek(new Date()))
   const [selectedCategory, setSelectedCategory] = useState('U16/U18')
@@ -52,10 +55,28 @@ export function TournamentCalendar() {
     }
   })
 
-  // Fetch tournaments from Supabase
+  // Fetch tournaments from Supabase or use mock data for guest
   useEffect(() => {
     async function fetchTournaments() {
       setLoading(true)
+
+      // Use mock data for guest users
+      if (isGuest) {
+        const mockTournaments = MOCK_CALENDAR_TOURNAMENTS.map((t) => ({
+          ...t,
+          assignments: t.assignments?.map((a) => ({
+            ...a,
+            id: `${t.id}-${a.role}-${a.coach?.name || a.player?.name}`,
+            tournament_id: t.id,
+            coach_id: a.coach ? 'mock-coach-id' : null,
+            player_id: a.player ? 'mock-player-id' : null,
+          })),
+        })) as TournamentWithDetails[]
+        setTournaments(mockTournaments)
+        setLoading(false)
+        return
+      }
+
       const supabase = createClient()
 
       const { data, error } = await supabase
@@ -80,7 +101,7 @@ export function TournamentCalendar() {
     }
 
     fetchTournaments()
-  }, [])
+  }, [isGuest])
 
   // Filter tournaments by selected week and category
   const filteredTournaments = tournaments.filter((t) => {
