@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Calendar, Trophy, Users, Settings, Heart, Brain, BarChart3 } from 'lucide-react'
+import { Calendar, Trophy, Users, Settings, Heart, Brain, BarChart3, Shuffle } from 'lucide-react'
 import { HomeAuthButtons } from '@/components/auth/home-auth-buttons'
 
 export default function Home() {
@@ -78,16 +78,31 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Settings */}
+          {/* Performance Hub */}
           <Link
-            href="/settings"
+            href="/performance"
             className="group relative bg-white rounded-2xl border border-stone-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
           >
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-stone-500 to-stone-600 flex items-center justify-center mb-4 shadow-lg shadow-stone-500/25 group-hover:scale-110 transition-transform">
-              <Settings className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/25 group-hover:scale-110 transition-transform">
+              <BarChart3 className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-lg font-bold text-stone-800 mb-2">Settings</h3>
-            <p className="text-stone-500 text-sm">Configure courts, session types, and system preferences</p>
+            <h3 className="text-lg font-bold text-stone-800 mb-2">Performance Hub</h3>
+            <p className="text-stone-500 text-sm">Season stats, load monitoring, and match analysis insights</p>
+            <div className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-stone-400">→</span>
+            </div>
+          </Link>
+
+          {/* UTR Matchups */}
+          <Link
+            href="/utr-matchups"
+            className="group relative bg-white rounded-2xl border border-stone-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+          >
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/25 group-hover:scale-110 transition-transform">
+              <Shuffle className="w-7 h-7 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-stone-800 mb-2">UTR Matchups</h3>
+            <p className="text-stone-500 text-sm">Generate balanced practice matchups based on UTR ratings</p>
             <div className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="text-stone-400">→</span>
             </div>
@@ -123,16 +138,16 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Match Analysis */}
+          {/* Settings */}
           <Link
-            href="/match-analysis"
+            href="/settings"
             className="group relative bg-white rounded-2xl border border-stone-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
           >
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/25 group-hover:scale-110 transition-transform">
-              <BarChart3 className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-stone-500 to-stone-600 flex items-center justify-center mb-4 shadow-lg shadow-stone-500/25 group-hover:scale-110 transition-transform">
+              <Settings className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-lg font-bold text-stone-800 mb-2">Match Analysis</h3>
-            <p className="text-stone-500 text-sm">Deep dive into match statistics, patterns, and performance insights</p>
+            <h3 className="text-lg font-bold text-stone-800 mb-2">Settings</h3>
+            <p className="text-stone-500 text-sm">Configure courts, session types, and system preferences</p>
             <div className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="text-stone-400">→</span>
             </div>

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(npm run start:*)",
+      "Bash(cat:*)",
+      "Bash(git -C \"C:\\Users\\Roquelina.Martínez\\Desktop\\Coding\\Academy Calendar\\academy--calendar\" log --oneline -10)",
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(xxd:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)",
+      "Bash(ls:*)",
+      "Bash(git rm:*)"
+    ]
+  }
+}
