@@ -20,7 +20,10 @@ import type {
   WhereaboutsInsert,
   WhereaboutsUpdate,
   UtrHistory,
-  UtrHistoryInsert
+  UtrHistoryInsert,
+  Attendance,
+  AttendanceInsert,
+  AttendanceUpdate
 } from '../types'
 
 // Helper to get untyped client for mutations (works around RLS typing issues)
@@ -256,4 +259,52 @@ export async function deleteUtrEntry(entryId: string): Promise<void> {
     .eq('id', entryId)
 
   if (error) throw error
+}
+
+// Attendance Mutations
+export async function markAttendance(data: AttendanceInsert): Promise<Attendance> {
+  const supabase = getClient()
+  const { data: attendance, error } = await supabase
+    .from('attendance')
+    .insert(data)
+    .select()
+    .single()
+
+  if (error) throw error
+  return attendance as Attendance
+}
+
+export async function updateAttendance(attendanceId: string, data: AttendanceUpdate): Promise<Attendance> {
+  const supabase = getClient()
+  const { data: attendance, error } = await supabase
+    .from('attendance')
+    .update(data)
+    .eq('id', attendanceId)
+    .select()
+    .single()
+
+  if (error) throw error
+  return attendance as Attendance
+}
+
+export async function deleteAttendance(attendanceId: string): Promise<void> {
+  const supabase = getClient()
+  const { error } = await supabase
+    .from('attendance')
+    .delete()
+    .eq('id', attendanceId)
+
+  if (error) throw error
+}
+
+// Bulk attendance marking for coaches
+export async function markBulkAttendance(entries: AttendanceInsert[]): Promise<Attendance[]> {
+  const supabase = getClient()
+  const { data: attendance, error } = await supabase
+    .from('attendance')
+    .insert(entries)
+    .select()
+
+  if (error) throw error
+  return attendance as Attendance[]
 }

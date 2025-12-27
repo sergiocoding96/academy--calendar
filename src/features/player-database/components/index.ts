@@ -26,3 +26,8 @@ export { WhereaboutsCalendar } from './WhereaboutsCalendar'
 export { UtrChart } from './UtrChart'
 export { UtrForm } from './UtrForm'
 export { UtrComparison } from './UtrComparison'
+
+// Attendance Components (Phase 5.2)
+export { AttendanceStats } from './AttendanceStats'
+export { AttendanceCalendar } from './AttendanceCalendar'
+export { QuickAttendance, BulkAttendance } from './QuickAttendance'
