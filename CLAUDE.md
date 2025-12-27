@@ -12,7 +12,7 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Tournament Agent (Phase 3 - Natural Language Queries)
+CURRENT: Tournament Agent (Phase 4 - AI Recommendations)
 SPEC: .claude/plans/vectorized-roaming-fairy.md
 BRANCH: feature/tournament-agent
 ```
@@ -35,15 +35,25 @@ BRANCH: feature/tournament-agent
 - ✅ Navigation - AI Agent link added with Bot icon
 - ✅ Build: TypeScript compilation verified
 
-### Phase 3 TODO (Natural Language Queries):
-- [ ] Create `src/lib/agent/actions/tournament-actions.ts` - Server actions
-- [ ] Implement `queryTournaments()` - Filter by category, dates, location
-- [ ] Implement `getTournamentDetails()` - Single tournament lookup
-- [ ] Implement `listPlayers()` - Player queries
-- [ ] Implement `getPlayerInfo()` - Player details
-- [ ] Create query parser for natural language date/location expressions
-- [ ] Update chat API to use real tool handlers instead of mocks
-- [ ] Guest mode mock data for queries
+### Phase 3 COMPLETE (Natural Language Queries):
+- ✅ `src/lib/agent/actions/tournament-actions.ts` - Server actions with 7 tools
+- ✅ `queryTournaments()` - Filter by category, dates, location, level
+- ✅ `getTournamentDetails()` - Single tournament with coach/player assignments
+- ✅ `listPlayers()` - Filter by category, status, coach
+- ✅ `getPlayerInfo()` - Player details with upcoming tournaments
+- ✅ `getCalendarSummary()` - Weekly/date range tournament summary
+- ✅ Query parser for natural language (dates, categories, locations, levels)
+- ✅ Chat API updated to use real tool handlers
+- ✅ Guest mode mock data fallback for all queries
+
+### Phase 4 TODO (AI Recommendations):
+- [ ] Create `src/lib/agent/recommendation/engine.ts` - Core recommendation logic
+- [ ] Create `src/lib/agent/recommendation/scoring.ts` - Tournament scoring algorithm
+- [ ] Implement scoring factors: age match, level, distance, availability, deadline
+- [ ] Create `/api/agent/recommend/route.ts` - Recommendations API
+- [ ] Create recommendation UI components (player-selector, recommendation-card)
+- [ ] Create `useRecommendations` hook for state management
+- [ ] Update `recommendTournaments()` action with real implementation
 
 ---
 

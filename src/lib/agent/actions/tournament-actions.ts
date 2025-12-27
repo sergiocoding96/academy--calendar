@@ -5,6 +5,7 @@ import {
   MOCK_CALENDAR_TOURNAMENTS,
   MOCK_PLAYERS,
 } from '@/lib/mock-data'
+import { getRecommendationSummary } from '@/lib/agent/recommendation'
 
 // ============================================
 // Types
@@ -627,7 +628,7 @@ export async function getCalendarSummary(input: CalendarQuery): Promise<ToolResu
 }
 
 // ============================================
-// Recommend Tournaments (Phase 4 - Stub)
+// Recommend Tournaments (Phase 4 - Full Implementation)
 // ============================================
 
 export async function recommendTournaments(input: {
@@ -638,55 +639,12 @@ export async function recommendTournaments(input: {
   date_to?: string
   tournament_type?: string
 }): Promise<ToolResult> {
-  // For Phase 3, return a basic recommendation based on available tournaments
-  // Phase 4 will implement the full scoring algorithm
-
-  const playerResult = await getPlayerInfo({
-    player_id: input.player_id,
-    player_name: input.player_name,
-  })
-
-  if (playerResult.isError) {
-    return playerResult
-  }
-
-  const player = (playerResult.result as { player: { category: string; name: string } }).player
-
-  // Get tournaments matching player's category
-  const tournamentsResult = await queryTournaments({
-    category: player.category,
-    date_from: input.date_from || new Date().toISOString().split('T')[0],
-    date_to: input.date_to,
-    tournament_type: input.tournament_type,
-    limit: input.max_results || 5,
-  })
-
-  if (tournamentsResult.isError) {
-    return tournamentsResult
-  }
-
-  const tournaments = (tournamentsResult.result as { tournaments: unknown[] }).tournaments
-
-  return {
-    result: {
-      recommendations: tournaments.map((t, index) => ({
-        tournament: t,
-        score: 80 - (index * 5), // Simple decreasing score
-        explanation: `Matches ${player.name}'s category (${player.category})`,
-        factors: {
-          ageCategoryMatch: 25,
-          levelAppropriateness: 20,
-          travelDistance: 15,
-          availabilityTiming: 10,
-          entryDeadline: 5 - index,
-          tournamentPrestige: 5,
-        },
-      })),
-      player: player.name,
-      isGuestData: (playerResult.result as { isGuestData: boolean }).isGuestData,
-    },
-    isError: false,
-  }
+  // Use the recommendation engine for full scoring algorithm
+  return await getRecommendationSummary(
+    input.player_id,
+    input.player_name,
+    input.max_results || 5
+  )
 }
 
 // ============================================
