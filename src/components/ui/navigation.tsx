@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3 } from 'lucide-react'
+import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/auth-provider'
 import { useState, useRef, useEffect } from 'react'
@@ -15,6 +15,7 @@ const publicNavItems = [
   { href: '/emotional-routine', label: 'Routine', icon: Heart },
   { href: '/master-emotions', label: 'Emotions', icon: Brain },
   { href: '/match-analysis', label: 'Analysis', icon: BarChart3 },
+  { href: '/tournaments/agent', label: 'AI Agent', icon: Bot },
 ]
 
 export function Navigation() {
