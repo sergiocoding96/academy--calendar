@@ -21,3 +21,8 @@ export { TrainingLoadForm } from './TrainingLoadForm'
 export { InjuryForm } from './InjuryForm'
 export { NotesManager } from './NotesManager'
 export { WhereaboutsCalendar } from './WhereaboutsCalendar'
+
+// UTR Components (Phase 5.1)
+export { UtrChart } from './UtrChart'
+export { UtrForm } from './UtrForm'
+export { UtrComparison } from './UtrComparison'
