@@ -12,10 +12,27 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: [FEATURE_NAME]
-SPEC: docs/features/[XX-feature-name].md
-BRANCH: feature/[feature-name]
+CURRENT: Tournament Agent (Phase 2 - Chat Interface)
+SPEC: .claude/plans/vectorized-roaming-fairy.md
+BRANCH: feature/tournament-agent
 ```
+
+### Phase 1 COMPLETE (Foundation Setup):
+- ✅ Dependencies: @anthropic-ai/sdk, ai, cheerio, puppeteer-core, @sparticuz/chromium
+- ✅ Types: `src/types/agent.ts` - All agent type definitions
+- ✅ Claude Client: `src/lib/agent/claude/client.ts` - API wrapper with streaming
+- ✅ System Prompts: `src/lib/agent/claude/prompts.ts` - Agent personality
+- ✅ Tool Definitions: `src/lib/agent/claude/tools.ts` - 7 Claude tools
+- ✅ Database Schema: 8 new agent tables created in Supabase
+- ✅ Build: TypeScript compilation verified (no errors)
+- ⏳ Environment: ANTHROPIC_API_KEY, CRON_SECRET (add to .env.local)
+
+### Phase 2 TODO (Chat Interface):
+- [ ] Create `/api/agent/chat/route.ts` - Streaming chat endpoint
+- [ ] Create chat UI components (agent-chat, chat-input, chat-message)
+- [ ] Create `use-chat` hook for state management
+- [ ] Create `/tournaments/agent/page.tsx` - Dedicated chat page
+- [ ] Add suggested questions component
 
 ---
 
@@ -24,7 +41,8 @@ BRANCH: feature/[feature-name]
 - **Language:** TypeScript
 - **Database:** Supabase (PostgreSQL + Auth + Realtime)
 - **Styling:** Tailwind CSS
-- **AI:** Claude API for natural language agent
+- **AI:** Claude API (@anthropic-ai/sdk) + Vercel AI SDK for streaming
+- **Scraping:** Cheerio (static) + Puppeteer/Chromium (dynamic)
 - **Deployment:** Vercel
 
 ---
@@ -34,25 +52,36 @@ BRANCH: feature/[feature-name]
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
+│   │   └── agent/         # Agent API routes (Phase 2)
+│   │       ├── chat/      # Streaming chat endpoint
+│   │       ├── recommend/ # Tournament recommendations
+│   │       ├── search/    # Web scraping/search
+│   │       └── scrape/    # Scheduled scraping (cron)
 │   ├── (auth)/            # Auth pages
 │   └── (dashboard)/       # Main app pages
 ├── components/            # Shared components
+│   └── agent/             # Agent UI components (Phase 2)
 ├── features/              # Feature-based modules
-│   ├── player-database/
-│   ├── schedule-manager/
-│   ├── utr-matchplay/
-│   ├── tournament-agent/
-│   ├── dartfish-analytics/
-│   └── van-manager/
 ├── lib/                   # Utilities
-│   ├── supabase.ts       # Supabase client
+│   ├── agent/             # 🆕 Tournament Agent module
+│   │   ├── claude/        # Claude API integration
+│   │   │   ├── client.ts  # API wrapper with streaming
+│   │   │   ├── prompts.ts # System prompts
+│   │   │   └── tools.ts   # Tool definitions (7 tools)
+│   │   ├── scraper/       # Web scrapers (Phase 5)
+│   │   ├── recommendation/# AI recommendations (Phase 4)
+│   │   ├── actions/       # Server actions (Phase 3)
+│   │   └── utils/         # Agent utilities
+│   ├── supabase/          # Supabase clients
 │   └── utils.ts
 ├── types/                 # TypeScript types
-│   └── database.ts       # Supabase generated types
+│   ├── database.ts        # Supabase generated types
+│   └── agent.ts           # 🆕 Agent type definitions
 └── hooks/                 # Custom React hooks
+    └── agent/             # Agent hooks (Phase 2)
 
 docs/
-├── features/             # Feature specifications (READ THESE)
+├── features/             # Feature specifications
 ├── materials/            # Current Excel files, screenshots, etc.
 └── DATABASE_SCHEMA.md    # Complete Supabase schema
 ```
@@ -119,6 +148,18 @@ docs/
 | `vehicles` | Van tracking |
 | `business_cards` | Card tracking |
 | `dartfish_imports` | Match video analysis data |
+
+### Agent Tables (✅ Created):
+| Table | Purpose |
+|-------|---------|
+| `tournament_sources` | External tournament data sources (ITF, federations) |
+| `scraped_tournaments` | Discovered tournaments awaiting approval |
+| `agent_conversations` | Chat conversation history |
+| `agent_messages` | Individual chat messages |
+| `player_availability` | Player availability for recommendations |
+| `tournament_recommendations` | AI-generated tournament suggestions |
+| `agent_notifications` | Agent-generated notifications |
+| `scrape_logs` | Web scraping job history |
 
 **Full schema:** `docs/DATABASE_SCHEMA.md`
 
@@ -206,4 +247,4 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 
 **Date:** 2025-12-27
 **By:** Claude Code
-**Changes:** Initial setup
+**Changes:** Phase 1 COMPLETE - All foundation components ready (types, Claude client, prompts, tools, database schema)
