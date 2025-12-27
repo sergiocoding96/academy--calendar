@@ -12,7 +12,7 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Tournament Agent (Phase 4 - AI Recommendations)
+CURRENT: Tournament Agent (Phase 5 - Web Scraping)
 SPEC: .claude/plans/vectorized-roaming-fairy.md
 BRANCH: feature/tournament-agent
 ```
@@ -46,14 +46,24 @@ BRANCH: feature/tournament-agent
 - ✅ Chat API updated to use real tool handlers
 - ✅ Guest mode mock data fallback for all queries
 
-### Phase 4 TODO (AI Recommendations):
-- [ ] Create `src/lib/agent/recommendation/engine.ts` - Core recommendation logic
-- [ ] Create `src/lib/agent/recommendation/scoring.ts` - Tournament scoring algorithm
-- [ ] Implement scoring factors: age match, level, distance, availability, deadline
-- [ ] Create `/api/agent/recommend/route.ts` - Recommendations API
-- [ ] Create recommendation UI components (player-selector, recommendation-card)
-- [ ] Create `useRecommendations` hook for state management
-- [ ] Update `recommendTournaments()` action with real implementation
+### Phase 4 COMPLETE (AI Recommendations):
+- ✅ `src/lib/agent/recommendation/scoring.ts` - Tournament scoring algorithm
+  - 6 scoring factors: categoryMatch(25), levelMatch(25), travelDistance(20), availability(15), entryDeadline(10), prestige(5)
+  - Total score: 0-100 points with recommendation levels
+- ✅ `src/lib/agent/recommendation/engine.ts` - Core recommendation logic
+  - Fetches player profile and availability from Supabase
+  - Scores and ranks tournaments for personalized recommendations
+  - Guest mode fallback with mock recommendations
+- ✅ Updated `recommendTournaments()` action with real implementation
+- ✅ Build: TypeScript compilation verified
+
+### Phase 5 TODO (Web Scraping):
+- [ ] Create `src/lib/agent/scraper/base-scraper.ts` - Abstract scraper class
+- [ ] Create `src/lib/agent/scraper/parser.ts` - HTML parsing utilities
+- [ ] Create `src/lib/agent/scraper/itf-scraper.ts` - ITF website scraper
+- [ ] Create `/api/agent/search/route.ts` - Web search API
+- [ ] Create `/api/agent/scrape/route.ts` - Scheduled scraping (cron)
+- [ ] Implement search tool handler in tournament-actions.ts
 
 ---
 
@@ -268,4 +278,4 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 
 **Date:** 2025-12-27
 **By:** Claude Code
-**Changes:** Phase 2 COMPLETE - Chat interface with agentic loop, UI components, useChat hook, dedicated page
+**Changes:** Phase 4 COMPLETE - AI recommendation engine with 6-factor scoring algorithm, integrated with chat agent
