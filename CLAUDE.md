@@ -12,7 +12,7 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Tournament Agent (Phase 2 - Chat Interface)
+CURRENT: Tournament Agent (Phase 3 - Natural Language Queries)
 SPEC: .claude/plans/vectorized-roaming-fairy.md
 BRANCH: feature/tournament-agent
 ```
@@ -27,12 +27,23 @@ BRANCH: feature/tournament-agent
 - ✅ Build: TypeScript compilation verified (no errors)
 - ⏳ Environment: ANTHROPIC_API_KEY, CRON_SECRET (add to .env.local)
 
-### Phase 2 TODO (Chat Interface):
-- [ ] Create `/api/agent/chat/route.ts` - Streaming chat endpoint
-- [ ] Create chat UI components (agent-chat, chat-input, chat-message)
-- [ ] Create `use-chat` hook for state management
-- [ ] Create `/tournaments/agent/page.tsx` - Dedicated chat page
-- [ ] Add suggested questions component
+### Phase 2 COMPLETE (Chat Interface):
+- ✅ `/api/agent/chat/route.ts` - Chat endpoint with agentic loop
+- ✅ Chat UI: agent-chat, chat-input, chat-message, chat-suggestions
+- ✅ `useChat` hook - State management for messages, loading, errors
+- ✅ `/tournaments/agent/page.tsx` - Dedicated chat page
+- ✅ Navigation - AI Agent link added with Bot icon
+- ✅ Build: TypeScript compilation verified
+
+### Phase 3 TODO (Natural Language Queries):
+- [ ] Create `src/lib/agent/actions/tournament-actions.ts` - Server actions
+- [ ] Implement `queryTournaments()` - Filter by category, dates, location
+- [ ] Implement `getTournamentDetails()` - Single tournament lookup
+- [ ] Implement `listPlayers()` - Player queries
+- [ ] Implement `getPlayerInfo()` - Player details
+- [ ] Create query parser for natural language date/location expressions
+- [ ] Update chat API to use real tool handlers instead of mocks
+- [ ] Guest mode mock data for queries
 
 ---
 
@@ -247,4 +258,4 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 
 **Date:** 2025-12-27
 **By:** Claude Code
-**Changes:** Phase 1 COMPLETE - All foundation components ready (types, Claude client, prompts, tools, database schema)
+**Changes:** Phase 2 COMPLETE - Chat interface with agentic loop, UI components, useChat hook, dedicated page

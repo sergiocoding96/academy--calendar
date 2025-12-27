@@ -2,6 +2,15 @@ import { NextRequest } from 'next/server'
 import { executeChat, continueWithToolResults, isConfigured } from '@/lib/agent/claude/client'
 import type { Message } from '@/lib/agent/claude/client'
 import type { ToolResult } from '@/types/agent'
+import {
+  queryTournaments,
+  getTournamentDetails,
+  listPlayers,
+  getPlayerInfo,
+  getCalendarSummary,
+  recommendTournaments,
+  searchExternal,
+} from '@/lib/agent/actions'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -17,160 +26,82 @@ interface ChatRequestBody {
   }
 }
 
-// Mock tool execution for now (Phase 3 will implement real tool handlers)
+// Tool execution using real server actions
 async function executeToolCall(
   toolName: string,
   toolInput: Record<string, unknown>
 ): Promise<{ result: unknown; isError: boolean }> {
-  // For Phase 2, return mock responses
-  switch (toolName) {
-    case 'query_tournaments':
-      return {
-        result: {
-          tournaments: [
-            {
-              id: '1',
-              name: 'ITF Junior U16 Barcelona',
-              start_date: '2025-01-15',
-              end_date: '2025-01-19',
-              location: 'Barcelona, Spain',
-              category: 'U16',
-              level: 'J100',
-            },
-            {
-              id: '2',
-              name: 'RFET National Championship',
-              start_date: '2025-01-22',
-              end_date: '2025-01-26',
-              location: 'Madrid, Spain',
-              category: 'U16',
-              level: 'National',
-            },
-          ],
-          total: 2,
-        },
-        isError: false,
-      }
+  try {
+    switch (toolName) {
+      case 'query_tournaments':
+        return await queryTournaments({
+          category: toolInput.category as string | undefined,
+          date_from: toolInput.date_from as string | undefined,
+          date_to: toolInput.date_to as string | undefined,
+          location: toolInput.location as string | undefined,
+          tournament_type: toolInput.tournament_type as string | undefined,
+          level: toolInput.level as string | undefined,
+          limit: toolInput.limit as number | undefined,
+        })
 
-    case 'list_players':
-      return {
-        result: {
-          players: [
-            {
-              id: '1',
-              name: 'Carlos Martinez',
-              category: 'U16',
-              utr: 8.5,
-              coach: 'Coach Rodriguez',
-            },
-            {
-              id: '2',
-              name: 'Maria Garcia',
-              category: 'U14',
-              utr: 6.2,
-              coach: 'Coach Rodriguez',
-            },
-          ],
-          total: 2,
-        },
-        isError: false,
-      }
+      case 'get_tournament_details':
+        return await getTournamentDetails({
+          tournament_id: toolInput.tournament_id as string,
+        })
 
-    case 'get_player_info':
-      return {
-        result: {
-          id: '1',
-          name: 'Carlos Martinez',
-          category: 'U16',
-          utr: 8.5,
-          coach: 'Coach Rodriguez',
-          availability: 'available',
-          upcomingTournaments: 2,
-        },
-        isError: false,
-      }
+      case 'list_players':
+        return await listPlayers({
+          category: toolInput.category as string | undefined,
+          coach_id: toolInput.coach_id as string | undefined,
+          status: toolInput.status as string | undefined,
+          limit: toolInput.limit as number | undefined,
+        })
 
-    case 'get_calendar_summary':
-      return {
-        result: {
-          week: toolInput.week_number || 3,
-          year: toolInput.year || 2025,
-          tournaments: [
-            {
-              name: 'ITF Junior U16 Barcelona',
-              dates: 'Jan 15-19',
-              playersEntered: 3,
-            },
-          ],
-          deadlines: [
-            {
-              tournament: 'RFET Regional Championship',
-              deadline: '2025-01-18',
-            },
-          ],
-        },
-        isError: false,
-      }
+      case 'get_player_info':
+        return await getPlayerInfo({
+          player_id: toolInput.player_id as string | undefined,
+          player_name: toolInput.player_name as string | undefined,
+        })
 
-    case 'recommend_tournaments':
-      return {
-        result: {
-          recommendations: [
-            {
-              tournament: 'ITF Junior U16 Barcelona',
-              score: 92,
-              reasons: [
-                'Perfect age category match',
-                'Appropriate skill level',
-                'Local tournament (easy travel)',
-              ],
-            },
-            {
-              tournament: 'RFET National Championship',
-              score: 85,
-              reasons: [
-                'Good competitive experience',
-                'National ranking points',
-              ],
-            },
-          ],
-        },
-        isError: false,
-      }
+      case 'get_calendar_summary':
+        return await getCalendarSummary({
+          week_number: toolInput.week_number as number | undefined,
+          year: toolInput.year as number | undefined,
+          date_from: toolInput.date_from as string | undefined,
+          date_to: toolInput.date_to as string | undefined,
+        })
 
-    case 'get_tournament_details':
-      return {
-        result: {
-          id: toolInput.tournament_id,
-          name: 'ITF Junior U16 Barcelona',
-          start_date: '2025-01-15',
-          end_date: '2025-01-19',
-          location: 'Real Club de Tenis Barcelona',
-          category: 'U16',
-          level: 'J100',
-          surface: 'Clay',
-          entry_deadline: '2025-01-08',
-          draw_size: 32,
-          assignedPlayers: ['Carlos Martinez', 'Pablo Fernandez'],
-          assignedCoach: 'Coach Rodriguez',
-        },
-        isError: false,
-      }
+      case 'recommend_tournaments':
+        return await recommendTournaments({
+          player_id: toolInput.player_id as string | undefined,
+          player_name: toolInput.player_name as string | undefined,
+          max_results: toolInput.max_results as number | undefined,
+          date_from: toolInput.date_from as string | undefined,
+          date_to: toolInput.date_to as string | undefined,
+          tournament_type: toolInput.tournament_type as string | undefined,
+        })
 
-    case 'search_external':
-      return {
-        result: {
-          message: 'External search is available in Phase 5. For now, please use query_tournaments to search the database.',
-          tournaments: [],
-        },
-        isError: false,
-      }
+      case 'search_external':
+        return await searchExternal({
+          query: toolInput.query as string,
+          sources: toolInput.sources as string[] | undefined,
+          category: toolInput.category as string | undefined,
+          location: toolInput.location as string | undefined,
+          date_from: toolInput.date_from as string | undefined,
+          date_to: toolInput.date_to as string | undefined,
+        })
 
-    default:
-      return {
-        result: { error: `Unknown tool: ${toolName}` },
-        isError: true,
-      }
+      default:
+        return {
+          result: { error: `Unknown tool: ${toolName}` },
+          isError: true,
+        }
+    }
+  } catch (error) {
+    return {
+      result: { error: error instanceof Error ? error.message : 'Tool execution failed' },
+      isError: true,
+    }
   }
 }
 
