@@ -15,9 +15,9 @@ export { PlayerStats } from './PlayerStats'
 export { PlayerTabs, usePlayerTabs, type PlayerTabId } from './PlayerTabs'
 export { PlayerQuickActions } from './PlayerQuickActions'
 
-// Form Components (Phase 3.3) - will be added when created
-// export { PlayerForm } from './PlayerForm'
-// export { TrainingLoadForm } from './TrainingLoadForm'
-// export { InjuryForm } from './InjuryForm'
-// export { NotesManager } from './NotesManager'
-// export { WhereaboutsCalendar } from './WhereaboutsCalendar'
+// Form Components (Phase 3.3)
+export { PlayerForm } from './PlayerForm'
+export { TrainingLoadForm } from './TrainingLoadForm'
+export { InjuryForm } from './InjuryForm'
+export { NotesManager } from './NotesManager'
+export { WhereaboutsCalendar } from './WhereaboutsCalendar'
