@@ -8,12 +8,12 @@ export { PlayerTable } from './PlayerTable'
 export { PlayerFilters } from './PlayerFilters'
 export { PlayerSearch } from './PlayerSearch'
 
-// Profile Components (Phase 3.2) - will be added when created
-// export { PlayerProfile } from './PlayerProfile'
-// export { PlayerHeader } from './PlayerHeader'
-// export { PlayerStats } from './PlayerStats'
-// export { PlayerTabs } from './PlayerTabs'
-// export { PlayerQuickActions } from './PlayerQuickActions'
+// Profile Components (Phase 3.2)
+export { PlayerProfile } from './PlayerProfile'
+export { PlayerHeader } from './PlayerHeader'
+export { PlayerStats } from './PlayerStats'
+export { PlayerTabs, usePlayerTabs, type PlayerTabId } from './PlayerTabs'
+export { PlayerQuickActions } from './PlayerQuickActions'
 
 // Form Components (Phase 3.3) - will be added when created
 // export { PlayerForm } from './PlayerForm'
