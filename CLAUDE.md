@@ -12,9 +12,10 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: [FEATURE_NAME]
-SPEC: docs/features/[XX-feature-name].md
-BRANCH: feature/[feature-name]
+CURRENT: Player Database UI - COMPLETE
+SPEC: docs/features/01-player-database.md
+SUPABASE PROJECT: dhisrdvfocenhfarblxd
+PHASE: 6 - Security review & documentation (FINAL)
 ```
 
 ---
@@ -99,6 +100,37 @@ docs/
 - Use available plugins for linting, formatting, type-checking
 - Run `npm run lint` and `npm run type-check` before committing
 - Use Prettier for consistent formatting
+
+---
+
+## 📦 Player Database Feature
+
+### Hooks (src/features/player-database/hooks/)
+| Hook | Purpose | Returns |
+|------|---------|---------|
+| `usePlayer(id)` | Single player with CRUD | player, update, remove, toggleActive |
+| `usePlayers(filters)` | List with filters | players, setFilters, addPlayer |
+| `useTrainingLoads(playerId)` | Training load management | trainingLoads, addLoad, updateLoad, removeLoad, averageRpe, totalMinutes |
+| `useInjuries(playerId)` | Injury tracking | injuries, activeInjuries, hasActiveInjury, addInjury, clearInjury |
+| `usePlayerNotes(playerId)` | Notes with AI context | notes, aiContextNotes, addNote, toggleAiContext |
+| `useWhereabouts(playerId)` | Calendar/availability | whereabouts, upcomingWhereabouts, getWhereaboutsForDate |
+| `useUtrHistory(playerId)` | UTR tracking | utrHistory, stats (currentUtr, highestUtr, utrChange) |
+| `useAttendance(playerId)` | Attendance tracking | attendance, stats, markPresent, markAbsent, markStatus, getDateStatus |
+
+### Query Functions (src/features/player-database/lib/queries.ts)
+- `getPlayer`, `getPlayers`, `getPlayerWithDetails`
+- `getPlayerTrainingLoads`, `getPlayerInjuries`, `getActiveInjuries`
+- `getPlayerNotes`, `getPlayerWhereabouts`, `getUpcomingWhereabouts`
+- `getPlayerUtrHistory`, `getPlayerAttendance`, `getCoaches`
+
+### Mutation Functions (src/features/player-database/lib/mutations.ts)
+- Player: `createPlayer`, `updatePlayer`, `deletePlayer`, `togglePlayerActive`
+- Training: `createTrainingLoad`, `updateTrainingLoad`, `deleteTrainingLoad`
+- Injuries: `createInjury`, `updateInjury`, `clearInjury`, `deleteInjury`
+- Notes: `createNote`, `updateNote`, `deleteNote`, `toggleNoteAiContext`
+- Whereabouts: `createWhereabouts`, `updateWhereabouts`, `deleteWhereabouts`
+- UTR: `addUtrEntry`, `deleteUtrEntry`
+- Attendance: `markAttendance`, `updateAttendance`, `deleteAttendance`, `markBulkAttendance`
 
 ---
 
@@ -197,7 +229,15 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 ## ⚠️ Known Issues / Tech Debt
 > Add items here as you discover them
 
-- [ ] _None documented yet_
+### Security (from Phase 6 audit)
+- [ ] **CRITICAL**: RLS policies use `USING (true)` - must tighten to verify coach-player assignments
+- [ ] **HIGH**: Guest mode bypasses server-side authorization - limit to read-only demo data
+- [ ] **HIGH**: IDOR in mutations - add ownership verification before update/delete
+- [ ] **MEDIUM**: Add input sanitization for text fields that may contain HTML
+- [ ] **MEDIUM**: Add rate limiting on form submissions
+
+### Technical Debt
+- [ ] Some Supabase client type casts using `as any` for attendance queries
 
 ---
 
@@ -206,4 +246,9 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 
 **Date:** 2025-12-27
 **By:** Claude Code
-**Changes:** Initial setup
+**Changes:** Player Database UI feature COMPLETE
+- All 8 hooks implemented (including useAttendance)
+- 21+ components created (list, profile, forms, UTR, attendance)
+- Coach dashboard pages: players list, detail, training, injuries, notes, whereabouts, UTR, attendance
+- Player dashboard pages: training, injuries, whereabouts
+- Security audit completed with documented findings
