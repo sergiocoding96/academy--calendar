@@ -10,16 +10,22 @@ import {
   BarChart3,
   Home,
   LogOut,
-  User
+  User,
+  Activity,
+  AlertTriangle,
+  MapPin
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 
 const navItems = [
   { href: '/dashboard/player', label: 'Overview', icon: Home, exact: true },
   { href: '/dashboard/player/schedule', label: 'My Schedule', icon: Calendar },
+  { href: '/dashboard/player/training', label: 'Training Log', icon: Activity },
   { href: '/dashboard/player/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/dashboard/player/goals', label: 'Goals', icon: Target },
   { href: '/dashboard/player/fitness', label: 'Fitness', icon: Dumbbell },
+  { href: '/dashboard/player/injuries', label: 'My Injuries', icon: AlertTriangle },
+  { href: '/dashboard/player/whereabouts', label: 'Whereabouts', icon: MapPin },
   { href: '/dashboard/player/stats', label: 'My Stats', icon: BarChart3 },
 ]
 
