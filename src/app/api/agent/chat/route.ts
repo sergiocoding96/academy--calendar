@@ -107,12 +107,12 @@ async function executeToolCall(
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Claude API is configured
+    // Check if Gemini API is configured
     if (!isConfigured()) {
       return new Response(
         JSON.stringify({
-          error: 'Claude API not configured',
-          message: 'Please add ANTHROPIC_API_KEY to your environment variables.',
+          error: 'Gemini API not configured',
+          message: 'Please add GOOGLE_API_KEY to your environment variables.',
         }),
         {
           status: 503,
