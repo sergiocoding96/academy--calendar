@@ -12,7 +12,7 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Tournament Agent (Phase 5 - Web Scraping)
+CURRENT: Tournament Agent (Phase 5 COMPLETE - Web Scraping)
 SPEC: .claude/plans/vectorized-roaming-fairy.md
 BRANCH: feature/tournament-agent
 ```
@@ -57,13 +57,26 @@ BRANCH: feature/tournament-agent
 - ✅ Updated `recommendTournaments()` action with real implementation
 - ✅ Build: TypeScript compilation verified
 
-### Phase 5 TODO (Web Scraping):
-- [ ] Create `src/lib/agent/scraper/base-scraper.ts` - Abstract scraper class
-- [ ] Create `src/lib/agent/scraper/parser.ts` - HTML parsing utilities
-- [ ] Create `src/lib/agent/scraper/itf-scraper.ts` - ITF website scraper
-- [ ] Create `/api/agent/search/route.ts` - Web search API
-- [ ] Create `/api/agent/scrape/route.ts` - Scheduled scraping (cron)
-- [ ] Implement search tool handler in tournament-actions.ts
+### Phase 5 COMPLETE (Web Scraping with Scrapfly):
+- ✅ `src/lib/agent/scraper/scrapfly-client.ts` - Scrapfly API wrapper
+  - Reliable web scraping without Puppeteer complexity
+  - Handles anti-bot, JS rendering, proxy rotation
+  - Free tier: 1,000 requests/month (plenty for weekly scrapes)
+- ✅ `src/lib/agent/scraper/parser.ts` - Cheerio HTML parsing utilities
+  - Date parsing, category normalization, surface mapping
+  - Tournament ID generation from scraped data
+- ✅ `src/lib/agent/scraper/itf-scraper.ts` - ITF World Tennis Tour scraper
+  - Searches by category (U12, U14, U16, U18), country, dates
+  - Parses tournament cards from calendar pages
+- ✅ `/api/agent/scrape/route.ts` - Weekly cron endpoint
+  - Vercel cron compatible (runs every Monday 6 AM UTC)
+  - Upserts to scraped_tournaments table
+  - Logs scrape results to scrape_logs table
+- ✅ Updated `searchExternal()` action with real scraper
+  - Falls back to cached data if Scrapfly not configured
+  - Live ITF search when API key available
+- ✅ Build: TypeScript compilation verified
+- ⏳ Environment: Add `SCRAPFLY_API_KEY` to .env.local (sign up at scrapfly.io)
 
 ---
 

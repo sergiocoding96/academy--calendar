@@ -20,16 +20,23 @@ export interface TournamentSource {
 
 export interface ScrapedTournament {
   id: string
-  created_at: string
+  created_at?: string
   source_id: string
+  external_id?: string
   name: string
   location: string | null
+  country?: string | null
   start_date: string | null
   end_date: string | null
   category: string | null
+  tournament_type?: string | null
   level: string | null
-  website_url: string | null
+  surface?: string | null
+  entry_deadline?: string | null
+  website?: string | null
+  website_url?: string | null // legacy field
   raw_data: Json | null
+  scraped_at?: string
   status: 'pending' | 'approved' | 'rejected' | 'duplicate'
 }
 

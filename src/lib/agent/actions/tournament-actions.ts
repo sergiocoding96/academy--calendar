@@ -648,7 +648,7 @@ export async function recommendTournaments(input: {
 }
 
 // ============================================
-// Search External (Phase 5 - Stub)
+// Search External (Phase 5 - Web Scraping)
 // ============================================
 
 export async function searchExternal(input: {
@@ -659,15 +659,115 @@ export async function searchExternal(input: {
   date_from?: string
   date_to?: string
 }): Promise<ToolResult> {
-  // Phase 5 will implement web scraping
-  // For now, return a message about the feature
+  try {
+    // Dynamic import to avoid bundling scraper in client
+    const { searchITF, isScrapflyConfigured } = await import('@/lib/agent/scraper')
 
-  return {
-    result: {
-      message: `External search for "${input.query}" will be available in a future update. The system will search ${input.sources?.join(', ') || 'ITF, Tennis Europe, and federation'} websites for tournaments.`,
-      sources: input.sources || ['itf', 'tennis_europe', 'rfet'],
-      status: 'not_implemented',
-    },
-    isError: false,
+    // Check if scraping is configured
+    if (!isScrapflyConfigured()) {
+      // Fallback: check scraped_tournaments table for cached data
+      const supabase = await createClient()
+
+      let query = supabase
+        .from('scraped_tournaments')
+        .select('*')
+        .eq('status', 'approved')
+        .order('start_date', { ascending: true })
+        .limit(10)
+
+      if (input.category) {
+        query = query.eq('category', input.category)
+      }
+
+      if (input.location) {
+        query = query.or(`location.ilike.%${input.location}%,country.ilike.%${input.location}%`)
+      }
+
+      if (input.date_from) {
+        query = query.gte('start_date', input.date_from)
+      }
+
+      if (input.date_to) {
+        query = query.lte('start_date', input.date_to)
+      }
+
+      const { data: cachedTournaments, error } = await query
+
+      if (error) {
+        return {
+          result: {
+            message: 'Web scraping not configured. No cached tournaments available.',
+            tournaments: [],
+            source: 'cache',
+            note: 'Add SCRAPFLY_API_KEY to enable live web scraping.',
+          },
+          isError: false,
+        }
+      }
+
+      return {
+        result: {
+          message: `Found ${cachedTournaments?.length || 0} tournaments from cached data.`,
+          tournaments: cachedTournaments || [],
+          source: 'cache',
+          note: 'Results from previously scraped data. Add SCRAPFLY_API_KEY for live searches.',
+        },
+        isError: false,
+      }
+    }
+
+    // Live scraping with Scrapfly
+    console.log(`[Search External] Searching for: ${input.query}`)
+
+    const result = await searchITF({
+      category: input.category,
+      country: input.location,
+      dateFrom: input.date_from,
+      dateTo: input.date_to,
+      limit: 15,
+    })
+
+    if (!result.success) {
+      return {
+        result: {
+          message: `Search completed with errors: ${result.errors.join(', ')}`,
+          tournaments: result.tournaments,
+          source: 'ITF',
+          errors: result.errors,
+        },
+        isError: result.tournaments.length === 0,
+      }
+    }
+
+    return {
+      result: {
+        message: `Found ${result.tournaments.length} tournaments from ITF.`,
+        tournaments: result.tournaments.map(t => ({
+          id: t.id,
+          name: t.name,
+          start_date: t.start_date,
+          end_date: t.end_date,
+          location: t.location,
+          country: t.country,
+          category: t.category,
+          level: t.level,
+          surface: t.surface,
+          website: t.website,
+        })),
+        source: 'ITF World Tennis Tour',
+        scrapedAt: result.scrapedAt,
+      },
+      isError: false,
+    }
+
+  } catch (error) {
+    console.error('[Search External] Error:', error)
+    return {
+      result: {
+        error: error instanceof Error ? error.message : 'Failed to search external sources',
+        tournaments: [],
+      },
+      isError: true,
+    }
   }
 }
