@@ -12,11 +12,72 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Player Database UI - COMPLETE
-SPEC: docs/features/01-player-database.md
+CURRENT: Tournament Agent (Phase 5 COMPLETE - Web Scraping)
+SPEC: .claude/plans/vectorized-roaming-fairy.md
+BRANCH: feature/tournament-agent
 SUPABASE PROJECT: dhisrdvfocenhfarblxd
-PHASE: 6 - Security review & documentation (FINAL)
 ```
+
+### Phase 1 COMPLETE (Foundation Setup):
+- ✅ Dependencies: @anthropic-ai/sdk, ai, cheerio, puppeteer-core, @sparticuz/chromium
+- ✅ Types: `src/types/agent.ts` - All agent type definitions
+- ✅ Claude Client: `src/lib/agent/claude/client.ts` - API wrapper with streaming
+- ✅ System Prompts: `src/lib/agent/claude/prompts.ts` - Agent personality
+- ✅ Tool Definitions: `src/lib/agent/claude/tools.ts` - 7 Claude tools
+- ✅ Database Schema: 8 new agent tables created in Supabase
+- ✅ Build: TypeScript compilation verified (no errors)
+- ⏳ Environment: ANTHROPIC_API_KEY, CRON_SECRET (add to .env.local)
+
+### Phase 2 COMPLETE (Chat Interface):
+- ✅ `/api/agent/chat/route.ts` - Chat endpoint with agentic loop
+- ✅ Chat UI: agent-chat, chat-input, chat-message, chat-suggestions
+- ✅ `useChat` hook - State management for messages, loading, errors
+- ✅ `/tournaments/agent/page.tsx` - Dedicated chat page
+- ✅ Navigation - AI Agent link added with Bot icon
+- ✅ Build: TypeScript compilation verified
+
+### Phase 3 COMPLETE (Natural Language Queries):
+- ✅ `src/lib/agent/actions/tournament-actions.ts` - Server actions with 7 tools
+- ✅ `queryTournaments()` - Filter by category, dates, location, level
+- ✅ `getTournamentDetails()` - Single tournament with coach/player assignments
+- ✅ `listPlayers()` - Filter by category, status, coach
+- ✅ `getPlayerInfo()` - Player details with upcoming tournaments
+- ✅ `getCalendarSummary()` - Weekly/date range tournament summary
+- ✅ Query parser for natural language (dates, categories, locations, levels)
+- ✅ Chat API updated to use real tool handlers
+- ✅ Guest mode mock data fallback for all queries
+
+### Phase 4 COMPLETE (AI Recommendations):
+- ✅ `src/lib/agent/recommendation/scoring.ts` - Tournament scoring algorithm
+  - 6 scoring factors: categoryMatch(25), levelMatch(25), travelDistance(20), availability(15), entryDeadline(10), prestige(5)
+  - Total score: 0-100 points with recommendation levels
+- ✅ `src/lib/agent/recommendation/engine.ts` - Core recommendation logic
+  - Fetches player profile and availability from Supabase
+  - Scores and ranks tournaments for personalized recommendations
+  - Guest mode fallback with mock recommendations
+- ✅ Updated `recommendTournaments()` action with real implementation
+- ✅ Build: TypeScript compilation verified
+
+### Phase 5 COMPLETE (Web Scraping with Scrapfly):
+- ✅ `src/lib/agent/scraper/scrapfly-client.ts` - Scrapfly API wrapper
+  - Reliable web scraping without Puppeteer complexity
+  - Handles anti-bot, JS rendering, proxy rotation
+  - Free tier: 1,000 requests/month (plenty for weekly scrapes)
+- ✅ `src/lib/agent/scraper/parser.ts` - Cheerio HTML parsing utilities
+  - Date parsing, category normalization, surface mapping
+  - Tournament ID generation from scraped data
+- ✅ `src/lib/agent/scraper/itf-scraper.ts` - ITF World Tennis Tour scraper
+  - Searches by category (U12, U14, U16, U18), country, dates
+  - Parses tournament cards from calendar pages
+- ✅ `/api/agent/scrape/route.ts` - Weekly cron endpoint
+  - Vercel cron compatible (runs every Monday 6 AM UTC)
+  - Upserts to scraped_tournaments table
+  - Logs scrape results to scrape_logs table
+- ✅ Updated `searchExternal()` action with real scraper
+  - Falls back to cached data if Scrapfly not configured
+  - Live ITF search when API key available
+- ✅ Build: TypeScript compilation verified
+- ⏳ Environment: Add `SCRAPFLY_API_KEY` to .env.local (sign up at scrapfly.io)
 
 ---
 
@@ -25,7 +86,8 @@ PHASE: 6 - Security review & documentation (FINAL)
 - **Language:** TypeScript
 - **Database:** Supabase (PostgreSQL + Auth + Realtime)
 - **Styling:** Tailwind CSS
-- **AI:** Claude API for natural language agent
+- **AI:** Claude API (@anthropic-ai/sdk) + Vercel AI SDK for streaming
+- **Scraping:** Cheerio (static) + Puppeteer/Chromium (dynamic)
 - **Deployment:** Vercel
 
 ---
@@ -35,25 +97,36 @@ PHASE: 6 - Security review & documentation (FINAL)
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
+│   │   └── agent/         # Agent API routes (Phase 2)
+│   │       ├── chat/      # Streaming chat endpoint
+│   │       ├── recommend/ # Tournament recommendations
+│   │       ├── search/    # Web scraping/search
+│   │       └── scrape/    # Scheduled scraping (cron)
 │   ├── (auth)/            # Auth pages
 │   └── (dashboard)/       # Main app pages
 ├── components/            # Shared components
+│   └── agent/             # Agent UI components (Phase 2)
 ├── features/              # Feature-based modules
-│   ├── player-database/
-│   ├── schedule-manager/
-│   ├── utr-matchplay/
-│   ├── tournament-agent/
-│   ├── dartfish-analytics/
-│   └── van-manager/
 ├── lib/                   # Utilities
-│   ├── supabase.ts       # Supabase client
+│   ├── agent/             # 🆕 Tournament Agent module
+│   │   ├── claude/        # Claude API integration
+│   │   │   ├── client.ts  # API wrapper with streaming
+│   │   │   ├── prompts.ts # System prompts
+│   │   │   └── tools.ts   # Tool definitions (7 tools)
+│   │   ├── scraper/       # Web scrapers (Phase 5)
+│   │   ├── recommendation/# AI recommendations (Phase 4)
+│   │   ├── actions/       # Server actions (Phase 3)
+│   │   └── utils/         # Agent utilities
+│   ├── supabase/          # Supabase clients
 │   └── utils.ts
 ├── types/                 # TypeScript types
-│   └── database.ts       # Supabase generated types
+│   ├── database.ts        # Supabase generated types
+│   └── agent.ts           # 🆕 Agent type definitions
 └── hooks/                 # Custom React hooks
+    └── agent/             # Agent hooks (Phase 2)
 
 docs/
-├── features/             # Feature specifications (READ THESE)
+├── features/             # Feature specifications
 ├── materials/            # Current Excel files, screenshots, etc.
 └── DATABASE_SCHEMA.md    # Complete Supabase schema
 ```
@@ -152,6 +225,18 @@ docs/
 | `business_cards` | Card tracking |
 | `dartfish_imports` | Match video analysis data |
 
+### Agent Tables (✅ Created):
+| Table | Purpose |
+|-------|---------|
+| `tournament_sources` | External tournament data sources (ITF, federations) |
+| `scraped_tournaments` | Discovered tournaments awaiting approval |
+| `agent_conversations` | Chat conversation history |
+| `agent_messages` | Individual chat messages |
+| `player_availability` | Player availability for recommendations |
+| `tournament_recommendations` | AI-generated tournament suggestions |
+| `agent_notifications` | Agent-generated notifications |
+| `scrape_logs` | Web scraping job history |
+
 **Full schema:** `docs/DATABASE_SCHEMA.md`
 
 ---
@@ -244,11 +329,9 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 ## 📅 Last Updated
 > Update this when making significant changes to this file
 
-**Date:** 2025-12-27
+**Date:** 2025-12-28
 **By:** Claude Code
-**Changes:** Player Database UI feature COMPLETE
-- All 8 hooks implemented (including useAttendance)
-- 21+ components created (list, profile, forms, UTR, attendance)
-- Coach dashboard pages: players list, detail, training, injuries, notes, whereabouts, UTR, attendance
-- Player dashboard pages: training, injuries, whereabouts
-- Security audit completed with documented findings
+**Changes:** Tournament Agent Phase 5 COMPLETE - Web scraping with Scrapfly, Gemini AI integration
+- Player Database UI COMPLETE (all 8 hooks, 21+ components, security audit)
+- Tournament Agent Phase 4 COMPLETE - AI recommendation engine
+- Tournament Agent Phase 5 COMPLETE - Web scraping with circuit configurations
