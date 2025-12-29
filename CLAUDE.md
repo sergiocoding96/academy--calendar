@@ -12,11 +12,18 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Tournament Agent (Phase 5 COMPLETE - Web Scraping)
-SPEC: .claude/plans/vectorized-roaming-fairy.md
-BRANCH: feature/tournament-agent
+CURRENT: Tournament Calendar Integration (Phase 1 - UI Foundation)
+SPEC: .claude/plans/tournament-calendar-integration.md
+BRANCH: feature/tournament-calendar-integration
 SUPABASE PROJECT: dhisrdvfocenhfarblxd
 ```
+
+### Tournament Calendar Integration - Phase 1 Tasks:
+1. **Create SourcesSelector component** - Multi-select for 15 circuits (HTTP vs Scrapfly)
+2. **Create DateRangePicker component** - From/To date inputs with presets
+3. **Create useTournamentSources hook** - State management + localStorage
+4. **Update tournament calendar page layout** - Add filter bar
+5. **Documentation updates** - CLAUDE.md + TODO.md
 
 ### Phase 1 COMPLETE (Foundation Setup):
 - ✅ Dependencies: @anthropic-ai/sdk, ai, cheerio, puppeteer-core, @sparticuz/chromium
@@ -329,9 +336,13 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 ## 📅 Last Updated
 > Update this when making significant changes to this file
 
-**Date:** 2025-12-28
+**Date:** 2025-12-29
 **By:** Claude Code
-**Changes:** Tournament Agent Phase 5 COMPLETE - Web scraping with Scrapfly, Gemini AI integration
+**Changes:** Started Tournament Calendar Integration feature
+- Created feature plan: `.claude/plans/tournament-calendar-integration.md`
+- 6 phases: UI Foundation, Enhanced Display, On-Demand Scraping, Player Assignment, Change Detection, Testing
+- Branch: `feature/tournament-calendar-integration`
+
+Previous:
+- Tournament Agent Phase 5 COMPLETE - Web scraping with Scrapfly
 - Player Database UI COMPLETE (all 8 hooks, 21+ components, security audit)
-- Tournament Agent Phase 4 COMPLETE - AI recommendation engine
-- Tournament Agent Phase 5 COMPLETE - Web scraping with circuit configurations

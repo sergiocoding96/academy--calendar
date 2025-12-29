@@ -13,8 +13,34 @@
 
 | Task | Feature | Status | Est. Hours | Notes |
 |------|---------|--------|------------|-------|
-| Player Database UI | Player Database | ✅ COMPLETE | - | All phases done |
+| **Tournament Calendar Integration** | Tournament Agent | 🚧 In Progress | - | Phase 1: UI Foundation |
 | Security fixes (RLS policies) | Player Database | ⏳ Pending | - | See CLAUDE.md for audit findings |
+
+### Tournament Calendar Integration - Phase 1 Tasks
+> **Plan:** `.claude/plans/tournament-calendar-integration.md`
+
+- [ ] **Create SourcesSelector component** (`src/components/tournament/sources-selector.tsx`)
+  - Multi-select dropdown for 15 tournament circuits
+  - Group by HTTP (free) vs Scrapfly (requires API)
+  - Show circuit metadata, "Select All" / "Clear All" buttons
+  - Subagent: frontend-architect
+- [ ] **Create DateRangePicker component** (`src/components/tournament/date-range-picker.tsx`)
+  - From/To date inputs with calendar popover
+  - Quick presets: This month, 3 months, 6 months
+  - Validation: min 1 week, max 6 months
+  - Subagent: frontend-architect
+- [ ] **Create useTournamentSources hook** (`src/hooks/tournament/use-tournament-sources.ts`)
+  - State management for selected circuits
+  - Persist to localStorage
+  - Filter circuits by category
+- [ ] **Update tournament calendar page layout** (`src/app/tournaments/page.tsx`)
+  - Add filter bar with Sources + Date selectors
+  - Responsive layout (filters collapse on mobile)
+  - Loading states during filter changes
+  - Subagent: frontend-architect
+- [ ] **Documentation updates**
+  - Update CLAUDE.md with Phase 1 status
+  - Update TODO.md with completed tasks
 
 ---
 
@@ -77,22 +103,43 @@
 - [ ] Build hold/remix functionality
 - [ ] Connect to Schedule Manager
 
-### Tournament Calendar Agent
-- [ ] Research Spanish federation websites to scrape
-- [ ] Build tournament scraper (RFET)
-- [ ] Build tournament scraper (regional federations)
-- [ ] Create discovered_tournaments table
-- [ ] Create academy_tournaments table
-- [ ] Create tournament_registrations table
-- [ ] Create tournament_matches table
-- [ ] Build unified calendar UI with filters
-- [ ] Build "add to academy" flow
-- [ ] Build logistics management form
-- [ ] Implement cost calculator (fuel + depreciation)
-- [ ] Implement cost splitting logic
-- [ ] Build player confirmation flow
-- [ ] Build results entry form (holds/breaks)
-- [ ] Research fuel price API for Spain
+### Tournament Calendar Integration (6 Phases)
+> **Full Plan:** `.claude/plans/tournament-calendar-integration.md`
+
+**Phase 1: UI Foundation** (Current)
+- [ ] SourcesSelector component
+- [ ] DateRangePicker component
+- [ ] useTournamentSources hook
+- [ ] Update tournament calendar page layout
+
+**Phase 2: Enhanced Tournament Display**
+- [ ] TournamentCard component with full details
+- [ ] TournamentDetailModal component
+- [ ] useTournamentCalendar hook
+
+**Phase 3: On-Demand Scraping**
+- [ ] scrape-actions.ts server actions
+- [ ] RefreshButton component
+- [ ] useTournamentScraper hook
+- [ ] /api/tournaments/scrape endpoint
+
+**Phase 4: Player Assignment System**
+- [ ] PlayerAssignment component
+- [ ] assignment-actions.ts server actions
+- [ ] usePlayerAssignment hook
+- [ ] Update TournamentDetailModal with assignments
+
+**Phase 5: Change Detection & Notifications**
+- [ ] Database migration for change tracking
+- [ ] change-detection-actions.ts
+- [ ] ChangeIndicator component ([NEW], [UPDATE], [CANCELLED])
+- [ ] useTournamentChanges hook
+
+**Phase 6: Testing & Polish**
+- [ ] Unit + integration tests
+- [ ] Security review (RLS policies)
+- [ ] Performance optimization
+- [ ] Final documentation
 
 ### Van & Card Manager
 - [ ] Create vehicles table
@@ -196,10 +243,10 @@ Schedule Manager: [░░░░░░░░░░] 0%
 
 ### Phase 2: Features
 ```
-UTR Matchplay:    [░░░░░░░░░░] 0%
-Tournament Agent: [░░░░░░░░░░] 0%
-Van Manager:      [░░░░░░░░░░] 0%
-Dartfish:         [░░░░░░░░░░] 0%
+UTR Matchplay:              [░░░░░░░░░░] 0%
+Tournament Calendar Integ:  [█░░░░░░░░░] 10% (Phase 1/6)
+Van Manager:                [░░░░░░░░░░] 0%
+Dartfish:                   [░░░░░░░░░░] 0%
 ```
 
 ### Phase 3: Integrations
@@ -222,7 +269,8 @@ Deep Research:    [░░░░░░░░░░] 0%
 | 2025-12-27 | 2h | Player Database | Phase 4.1-4.2: Coach and player dashboard pages |
 | 2025-12-27 | 2h | Player Database | Phase 5.1-5.2: UTR tracking and attendance integration |
 | 2025-12-27 | 1h | Player Database | Phase 6: Security audit and documentation |
+| 2025-12-29 | 1h | Tournament Calendar | Feature planning, branch creation, documentation |
 
 ---
 
-_Last updated: 2025-12-27 by Claude Code_
+_Last updated: 2025-12-29 by Claude Code_
