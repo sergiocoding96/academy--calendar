@@ -1,0 +1,108 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { getPlayerTrainingLoads } from '../lib/queries'
+import { createTrainingLoad, updateTrainingLoad, deleteTrainingLoad } from '../lib/mutations'
+import type { TrainingLoad, TrainingLoadInsert, TrainingLoadUpdate, DateRange } from '../types'
+
+interface UseTrainingLoadsOptions {
+  dateRange?: DateRange
+}
+
+interface UseTrainingLoadsReturn {
+  trainingLoads: TrainingLoad[]
+  loading: boolean
+  error: Error | null
+  refetch: () => Promise<void>
+  addLoad: (data: Omit<TrainingLoadInsert, 'player_id'>) => Promise<TrainingLoad>
+  updateLoad: (loadId: string, data: TrainingLoadUpdate) => Promise<void>
+  removeLoad: (loadId: string) => Promise<void>
+  averageRpe: number | null
+  totalMinutes: number
+}
+
+export function useTrainingLoads(
+  playerId: string | null,
+  options: UseTrainingLoadsOptions = {}
+): UseTrainingLoadsReturn {
+  const { dateRange } = options
+  const [trainingLoads, setTrainingLoads] = useState<TrainingLoad[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  const fetchLoads = useCallback(async () => {
+    if (!playerId) {
+      setTrainingLoads([])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const data = await getPlayerTrainingLoads(playerId, dateRange)
+      setTrainingLoads(data || [])
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch training loads'))
+      setTrainingLoads([])
+    } finally {
+      setLoading(false)
+    }
+  }, [playerId, dateRange])
+
+  useEffect(() => {
+    fetchLoads()
+  }, [fetchLoads])
+
+  const addLoad = useCallback(async (data: Omit<TrainingLoadInsert, 'player_id'>): Promise<TrainingLoad> => {
+    if (!playerId) throw new Error('No player ID provided')
+
+    try {
+      const newLoad = await createTrainingLoad({ ...data, player_id: playerId })
+      setTrainingLoads(prev => [newLoad, ...prev])
+      return newLoad
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to add training load')
+    }
+  }, [playerId])
+
+  const updateLoad = useCallback(async (loadId: string, data: TrainingLoadUpdate) => {
+    try {
+      await updateTrainingLoad(loadId, data)
+      setTrainingLoads(prev =>
+        prev.map(load => load.id === loadId ? { ...load, ...data } : load)
+      )
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to update training load')
+    }
+  }, [])
+
+  const removeLoad = useCallback(async (loadId: string) => {
+    try {
+      await deleteTrainingLoad(loadId)
+      setTrainingLoads(prev => prev.filter(load => load.id !== loadId))
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Failed to delete training load')
+    }
+  }, [])
+
+  // Calculate stats
+  const averageRpe = trainingLoads.length > 0
+    ? trainingLoads.reduce((sum, load) => sum + (load.rpe || 0), 0) / trainingLoads.length
+    : null
+
+  const totalMinutes = trainingLoads.reduce((sum, load) => sum + (load.duration_minutes || 0), 0)
+
+  return {
+    trainingLoads,
+    loading,
+    error,
+    refetch: fetchLoads,
+    addLoad,
+    updateLoad,
+    removeLoad,
+    averageRpe,
+    totalMinutes
+  }
+}

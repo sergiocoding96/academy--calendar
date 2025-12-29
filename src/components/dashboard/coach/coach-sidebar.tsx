@@ -9,13 +9,15 @@ import {
   LogOut,
   User,
   Trophy,
-  ClipboardList
+  ClipboardList,
+  CheckSquare
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 
 const navItems = [
   { href: '/dashboard/coach', label: 'Overview', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/coach/players', label: 'My Players', icon: Users },
+  { href: '/dashboard/coach/attendance', label: 'Attendance', icon: CheckSquare },
   { href: '/dashboard/coach/sessions', label: 'Sessions', icon: ClipboardList },
   { href: '/sessions', label: 'Schedule', icon: Calendar },
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },

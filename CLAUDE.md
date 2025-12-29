@@ -15,6 +15,7 @@ Tennis academy management system with AI-powered scheduling, player management, 
 CURRENT: Tournament Agent (Phase 5 COMPLETE - Web Scraping)
 SPEC: .claude/plans/vectorized-roaming-fairy.md
 BRANCH: feature/tournament-agent
+SUPABASE PROJECT: dhisrdvfocenhfarblxd
 ```
 
 ### Phase 1 COMPLETE (Foundation Setup):
@@ -175,6 +176,37 @@ docs/
 
 ---
 
+## 📦 Player Database Feature
+
+### Hooks (src/features/player-database/hooks/)
+| Hook | Purpose | Returns |
+|------|---------|---------|
+| `usePlayer(id)` | Single player with CRUD | player, update, remove, toggleActive |
+| `usePlayers(filters)` | List with filters | players, setFilters, addPlayer |
+| `useTrainingLoads(playerId)` | Training load management | trainingLoads, addLoad, updateLoad, removeLoad, averageRpe, totalMinutes |
+| `useInjuries(playerId)` | Injury tracking | injuries, activeInjuries, hasActiveInjury, addInjury, clearInjury |
+| `usePlayerNotes(playerId)` | Notes with AI context | notes, aiContextNotes, addNote, toggleAiContext |
+| `useWhereabouts(playerId)` | Calendar/availability | whereabouts, upcomingWhereabouts, getWhereaboutsForDate |
+| `useUtrHistory(playerId)` | UTR tracking | utrHistory, stats (currentUtr, highestUtr, utrChange) |
+| `useAttendance(playerId)` | Attendance tracking | attendance, stats, markPresent, markAbsent, markStatus, getDateStatus |
+
+### Query Functions (src/features/player-database/lib/queries.ts)
+- `getPlayer`, `getPlayers`, `getPlayerWithDetails`
+- `getPlayerTrainingLoads`, `getPlayerInjuries`, `getActiveInjuries`
+- `getPlayerNotes`, `getPlayerWhereabouts`, `getUpcomingWhereabouts`
+- `getPlayerUtrHistory`, `getPlayerAttendance`, `getCoaches`
+
+### Mutation Functions (src/features/player-database/lib/mutations.ts)
+- Player: `createPlayer`, `updatePlayer`, `deletePlayer`, `togglePlayerActive`
+- Training: `createTrainingLoad`, `updateTrainingLoad`, `deleteTrainingLoad`
+- Injuries: `createInjury`, `updateInjury`, `clearInjury`, `deleteInjury`
+- Notes: `createNote`, `updateNote`, `deleteNote`, `toggleNoteAiContext`
+- Whereabouts: `createWhereabouts`, `updateWhereabouts`, `deleteWhereabouts`
+- UTR: `addUtrEntry`, `deleteUtrEntry`
+- Attendance: `markAttendance`, `updateAttendance`, `deleteAttendance`, `markBulkAttendance`
+
+---
+
 ## 🗄️ Database Quick Reference
 
 ### Core Tables:
@@ -282,13 +314,24 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 ## ⚠️ Known Issues / Tech Debt
 > Add items here as you discover them
 
-- [ ] _None documented yet_
+### Security (from Phase 6 audit)
+- [ ] **CRITICAL**: RLS policies use `USING (true)` - must tighten to verify coach-player assignments
+- [ ] **HIGH**: Guest mode bypasses server-side authorization - limit to read-only demo data
+- [ ] **HIGH**: IDOR in mutations - add ownership verification before update/delete
+- [ ] **MEDIUM**: Add input sanitization for text fields that may contain HTML
+- [ ] **MEDIUM**: Add rate limiting on form submissions
+
+### Technical Debt
+- [ ] Some Supabase client type casts using `as any` for attendance queries
 
 ---
 
 ## 📅 Last Updated
 > Update this when making significant changes to this file
 
-**Date:** 2025-12-27
+**Date:** 2025-12-28
 **By:** Claude Code
-**Changes:** Phase 4 COMPLETE - AI recommendation engine with 6-factor scoring algorithm, integrated with chat agent
+**Changes:** Tournament Agent Phase 5 COMPLETE - Web scraping with Scrapfly, Gemini AI integration
+- Player Database UI COMPLETE (all 8 hooks, 21+ components, security audit)
+- Tournament Agent Phase 4 COMPLETE - AI recommendation engine
+- Tournament Agent Phase 5 COMPLETE - Web scraping with circuit configurations
