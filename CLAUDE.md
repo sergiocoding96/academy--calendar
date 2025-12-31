@@ -18,12 +18,17 @@ BRANCH: feature/tournament-calendar-integration
 SUPABASE PROJECT: dhisrdvfocenhfarblxd
 ```
 
-### Tournament Calendar Integration - Phase 1 Tasks:
-1. **Create SourcesSelector component** - Multi-select for 15 circuits (HTTP vs Scrapfly)
-2. **Create DateRangePicker component** - From/To date inputs with presets
-3. **Create useTournamentSources hook** - State management + localStorage
-4. **Update tournament calendar page layout** - Add filter bar
-5. **Documentation updates** - CLAUDE.md + TODO.md
+### Tournament Calendar Integration - Phase 1 ✅ COMPLETE:
+- ✅ `src/components/tournament/sources-selector.tsx` - Multi-select for 12 circuits
+- ✅ `src/components/tournament/date-range-picker.tsx` - Dual-month calendar with presets
+- ✅ `src/components/tournament/tournament-filter-bar.tsx` - Combined filter bar
+- ✅ `src/hooks/tournament/use-tournament-sources.ts` - State + localStorage persistence
+- ✅ Updated `/tournaments/page.tsx` with FilterBar
+
+### Phase 2 Tasks (Next):
+1. **TournamentCard component** - Enhanced tournament display with full details
+2. **TournamentDetailModal** - Modal for tournament info + player assignment
+3. **useTournamentCalendar hook** - State management for calendar data
 
 ### Phase 1 COMPLETE (Foundation Setup):
 - ✅ Dependencies: @anthropic-ai/sdk, ai, cheerio, puppeteer-core, @sparticuz/chromium
@@ -336,13 +341,16 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 ## 📅 Last Updated
 > Update this when making significant changes to this file
 
-**Date:** 2025-12-29
+**Date:** 2025-12-30
 **By:** Claude Code
-**Changes:** Started Tournament Calendar Integration feature
-- Created feature plan: `.claude/plans/tournament-calendar-integration.md`
-- 6 phases: UI Foundation, Enhanced Display, On-Demand Scraping, Player Assignment, Change Detection, Testing
-- Branch: `feature/tournament-calendar-integration`
+**Changes:** Tournament Calendar Integration - Phase 1 COMPLETE
+- SourcesSelector: Multi-select dropdown for 12 tournament circuits
+- DateRangePicker: Dual-month calendar with presets (4 weeks, 3/6 months)
+- TournamentFilterBar: Combined filter component with Discover button
+- useTournamentSources hook: State management + localStorage persistence
+- Updated tournaments page layout
 
 Previous:
+- 2025-12-29: Started feature planning, created 6-phase plan
 - Tournament Agent Phase 5 COMPLETE - Web scraping with Scrapfly
 - Player Database UI COMPLETE (all 8 hooks, 21+ components, security audit)

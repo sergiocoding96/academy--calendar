@@ -16,29 +16,27 @@
 | **Tournament Calendar Integration** | Tournament Agent | 🚧 In Progress | - | Phase 1: UI Foundation |
 | Security fixes (RLS policies) | Player Database | ⏳ Pending | - | See CLAUDE.md for audit findings |
 
-### Tournament Calendar Integration - Phase 1 Tasks
+### Tournament Calendar Integration - Phase 1 Tasks ✅ COMPLETE
 > **Plan:** `.claude/plans/tournament-calendar-integration.md`
 
-- [ ] **Create SourcesSelector component** (`src/components/tournament/sources-selector.tsx`)
-  - Multi-select dropdown for 15 tournament circuits
-  - Group by HTTP (free) vs Scrapfly (requires API)
-  - Show circuit metadata, "Select All" / "Clear All" buttons
-  - Subagent: frontend-architect
-- [ ] **Create DateRangePicker component** (`src/components/tournament/date-range-picker.tsx`)
-  - From/To date inputs with calendar popover
-  - Quick presets: This month, 3 months, 6 months
-  - Validation: min 1 week, max 6 months
-  - Subagent: frontend-architect
-- [ ] **Create useTournamentSources hook** (`src/hooks/tournament/use-tournament-sources.ts`)
+- [x] **Create SourcesSelector component** (`src/components/tournament/sources-selector.tsx`) ✅
+  - Multi-select dropdown for 12 tournament circuits (5 HTTP, 7 Scrapfly)
+  - Groups by HTTP (free) vs Scrapfly (requires API)
+  - Show circuit metadata, country, categories, "Select All" / "Clear All" buttons
+- [x] **Create DateRangePicker component** (`src/components/tournament/date-range-picker.tsx`) ✅
+  - From/To date inputs with dual-month calendar popover
+  - Quick presets: This month, 4 weeks, 3 months, 6 months
+  - Validation: min 7 days, max 6 months
+- [x] **Create useTournamentSources hook** (`src/hooks/tournament/use-tournament-sources.ts`) ✅
   - State management for selected circuits
   - Persist to localStorage
-  - Filter circuits by category
-- [ ] **Update tournament calendar page layout** (`src/app/tournaments/page.tsx`)
-  - Add filter bar with Sources + Date selectors
-  - Responsive layout (filters collapse on mobile)
-  - Loading states during filter changes
-  - Subagent: frontend-architect
-- [ ] **Documentation updates**
+  - Filter circuits by category, HTTP/Scrapfly
+- [x] **Create TournamentFilterBar component** (`src/components/tournament/tournament-filter-bar.tsx`) ✅
+  - Combines SourcesSelector + DateRangePicker
+  - Discover button (ready for Phase 3 scraping)
+- [x] **Update tournament calendar page layout** (`src/app/tournaments/page.tsx`) ✅
+  - Added TournamentFilterBar above calendar
+- [x] **Documentation updates** ✅
   - Update CLAUDE.md with Phase 1 status
   - Update TODO.md with completed tasks
 
@@ -106,11 +104,12 @@
 ### Tournament Calendar Integration (6 Phases)
 > **Full Plan:** `.claude/plans/tournament-calendar-integration.md`
 
-**Phase 1: UI Foundation** (Current)
-- [ ] SourcesSelector component
-- [ ] DateRangePicker component
-- [ ] useTournamentSources hook
-- [ ] Update tournament calendar page layout
+**Phase 1: UI Foundation** ✅ COMPLETE
+- [x] SourcesSelector component
+- [x] DateRangePicker component
+- [x] useTournamentSources hook
+- [x] TournamentFilterBar component
+- [x] Update tournament calendar page layout
 
 **Phase 2: Enhanced Tournament Display**
 - [ ] TournamentCard component with full details
@@ -244,7 +243,7 @@ Schedule Manager: [░░░░░░░░░░] 0%
 ### Phase 2: Features
 ```
 UTR Matchplay:              [░░░░░░░░░░] 0%
-Tournament Calendar Integ:  [█░░░░░░░░░] 10% (Phase 1/6)
+Tournament Calendar Integ:  [██░░░░░░░░] 17% (Phase 1/6 COMPLETE)
 Van Manager:                [░░░░░░░░░░] 0%
 Dartfish:                   [░░░░░░░░░░] 0%
 ```
@@ -270,7 +269,8 @@ Deep Research:    [░░░░░░░░░░] 0%
 | 2025-12-27 | 2h | Player Database | Phase 5.1-5.2: UTR tracking and attendance integration |
 | 2025-12-27 | 1h | Player Database | Phase 6: Security audit and documentation |
 | 2025-12-29 | 1h | Tournament Calendar | Feature planning, branch creation, documentation |
+| 2025-12-30 | 1h | Tournament Calendar | Phase 1 COMPLETE - SourcesSelector, DateRangePicker, FilterBar |
 
 ---
 
-_Last updated: 2025-12-29 by Claude Code_
+_Last updated: 2025-12-30 by Claude Code_
