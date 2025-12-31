@@ -1,26 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, MapPin, Users, Star } from 'lucide-react'
-import { format, startOfWeek, addWeeks, getWeek } from 'date-fns'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, addWeeks } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/components/auth/auth-provider'
-import { MOCK_CALENDAR_TOURNAMENTS } from '@/lib/mock-data'
-import type { Tournament, TournamentAssignment, Coach, Player } from '@/types/database'
+import { useTournamentCalendar, type CalendarTournament } from '@/hooks/tournament'
+import { TournamentCard } from './tournament-card'
+import { TournamentDetailModal } from './tournament-detail-modal'
 
-interface TournamentWithDetails extends Tournament {
-  assignments?: (TournamentAssignment & {
-    coach?: Coach
-    player?: Player
-  })[]
-}
-
-const optionConfig: Record<string, { gradient: string; glow: string; label: string }> = {
+// Tournament type color configuration
+const typeConfig: Record<string, { gradient: string; glow: string; label: string }> = {
   proximity: {
     gradient: 'from-rose-600 via-red-600 to-red-700',
     glow: 'shadow-red-500/30',
-    label: 'PROXIMITY',
+    label: 'LOCAL',
   },
   national: {
     gradient: 'from-slate-500 via-slate-600 to-slate-700',
@@ -32,93 +24,87 @@ const optionConfig: Record<string, { gradient: string; glow: string; label: stri
     glow: 'shadow-orange-500/30',
     label: 'INTERNATIONAL',
   },
+  itf: {
+    gradient: 'from-blue-500 via-blue-600 to-blue-700',
+    glow: 'shadow-blue-500/30',
+    label: 'ITF',
+  },
+  tennis_europe: {
+    gradient: 'from-emerald-500 via-emerald-600 to-emerald-700',
+    glow: 'shadow-emerald-500/30',
+    label: 'TE',
+  },
+  federation: {
+    gradient: 'from-purple-500 via-purple-600 to-purple-700',
+    glow: 'shadow-purple-500/30',
+    label: 'FED',
+  },
 }
 
-const categories = ['U12/U14', 'U16/U18', 'Adults']
+// Category tabs for filtering
+const categoryTabs = [
+  { id: 'U12', label: 'U12' },
+  { id: 'U14', label: 'U14' },
+  { id: 'U16', label: 'U16' },
+  { id: 'U18', label: 'U18' },
+  { id: 'Adults', label: 'Adults' },
+]
 
-export function TournamentCalendar() {
-  const { isGuest } = useAuth()
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedWeek, setSelectedWeek] = useState(getWeek(new Date()))
-  const [selectedCategory, setSelectedCategory] = useState('U16/U18')
-  const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([])
-  const [loading, setLoading] = useState(true)
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
+interface TournamentCalendarProps {
+  /** External tournaments from discovery API - when provided, uses these instead of fetching */
+  tournaments?: CalendarTournament[]
+  /** Loading state from parent component */
+  isLoading?: boolean
+  /** Error message from parent component */
+  error?: string | null
+}
 
-  // Generate 12 weeks for display
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
-  const weeks = Array.from({ length: 12 }, (_, i) => {
-    const date = addWeeks(weekStart, i - 4)
-    return {
-      weekNumber: getWeek(date),
-      startDate: date,
-    }
+export function TournamentCalendar({
+  tournaments: externalTournaments,
+  isLoading: externalLoading,
+  error: externalError,
+}: TournamentCalendarProps = {}) {
+  const {
+    filteredTournaments,
+    weeks,
+    selectedWeek,
+    setSelectedWeek,
+    navigateWeeks,
+    selectedCategory,
+    setSelectedCategory,
+    loading,
+    error: hookError,
+    selectedTournament,
+    isModalOpen,
+    openModal,
+    closeModal,
+    getTournamentAssignedPlayers,
+    tournaments,
+  } = useTournamentCalendar({
+    externalTournaments,
+    isLoading: externalLoading,
   })
 
-  // Fetch tournaments from Supabase or use mock data for guest
-  useEffect(() => {
-    async function fetchTournaments() {
-      setLoading(true)
+  // Combine error states
+  const error = externalError || hookError
 
-      // Use mock data for guest users
-      if (isGuest) {
-        const mockTournaments = MOCK_CALENDAR_TOURNAMENTS.map((t) => ({
-          ...t,
-          assignments: t.assignments?.map((a) => ({
-            ...a,
-            id: `${t.id}-${a.role}-${a.coach?.name || a.player?.name}`,
-            tournament_id: t.id,
-            coach_id: a.coach ? 'mock-coach-id' : null,
-            player_id: a.player ? 'mock-player-id' : null,
-          })),
-        })) as TournamentWithDetails[]
-        setTournaments(mockTournaments)
-        setLoading(false)
-        return
-      }
+  const selectedWeekData = weeks.find(w => w.weekNumber === selectedWeek)
 
-      const supabase = createClient()
+  // Count tournaments per category for the selected week
+  const getCategoryCount = (categoryId: string) => {
+    return tournaments.filter(t => {
+      if (!t.start_date) return false
+      const category = t.category?.toLowerCase() || ''
+      const catLower = categoryId.toLowerCase()
 
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select(`
-          *,
-          tournament_assignments(
-            *,
-            coach:coaches(*),
-            player:players(*)
-          )
-        `)
-        .order('start_date')
+      // Check if in selected week
+      const { getWeek, parseISO } = require('date-fns')
+      const tournamentWeek = getWeek(parseISO(t.start_date))
+      if (tournamentWeek !== selectedWeek) return false
 
-      if (error) {
-        console.error('Error fetching tournaments:', error)
-      } else {
-        setTournaments(data || [])
-      }
-
-      setLoading(false)
-    }
-
-    fetchTournaments()
-  }, [isGuest])
-
-  // Filter tournaments by selected week and category
-  const filteredTournaments = tournaments.filter((t) => {
-    const tournamentWeek = getWeek(new Date(t.start_date))
-    const matchesWeek = tournamentWeek === selectedWeek
-    const matchesCategory =
-      selectedCategory === 'Adults'
-        ? t.category === 'Adults'
-        : t.category?.includes(selectedCategory.split('/')[0]) ||
-          t.category?.includes(selectedCategory.split('/')[1])
-    return matchesWeek && matchesCategory
-  })
-
-  const selectedWeekData = weeks.find((w) => w.weekNumber === selectedWeek)
-
-  const navigateWeeks = (direction: 'prev' | 'next') => {
-    setCurrentDate((prev) => addWeeks(prev, direction === 'next' ? 4 : -4))
+      // Check category match
+      return category.includes(catLower)
+    }).length
   }
 
   return (
@@ -154,11 +140,9 @@ export function TournamentCalendar() {
             </button>
 
             <div className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide py-2">
-              {weeks.map((week) => {
+              {weeks.map(week => {
                 const isSelected = selectedWeek === week.weekNumber
-                const hasTournaments = tournaments.some(
-                  (t) => getWeek(new Date(t.start_date)) === week.weekNumber
-                )
+                const hasTournaments = week.tournamentCount > 0
 
                 return (
                   <button
@@ -169,8 +153,8 @@ export function TournamentCalendar() {
                       isSelected
                         ? 'bg-white text-red-700 shadow-lg scale-110'
                         : hasTournaments
-                        ? 'bg-white/20 text-white hover:bg-white/30'
-                        : 'bg-white/5 text-white/50'
+                          ? 'bg-white/20 text-white hover:bg-white/30'
+                          : 'bg-white/5 text-white/50'
                     )}
                   >
                     <span className="text-[10px] font-bold tracking-wider opacity-80">WEEK</span>
@@ -209,22 +193,14 @@ export function TournamentCalendar() {
       {/* Category Tabs */}
       <div className="px-4 py-3 border-b border-stone-100 bg-stone-50/50">
         <div className="flex gap-2">
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat
-            const count = tournaments.filter((t) => {
-              const tournamentWeek = getWeek(new Date(t.start_date))
-              const matchesWeek = tournamentWeek === selectedWeek
-              const matchesCategory =
-                cat === 'Adults'
-                  ? t.category === 'Adults'
-                  : t.category?.includes(cat.split('/')[0]) || t.category?.includes(cat.split('/')[1])
-              return matchesWeek && matchesCategory
-            }).length
+          {categoryTabs.map(cat => {
+            const isActive = selectedCategory === cat.id
+            const count = getCategoryCount(cat.id)
 
             return (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
                 className={cn(
                   'relative flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300',
                   isActive
@@ -232,7 +208,7 @@ export function TournamentCalendar() {
                     : 'text-stone-500 hover:text-stone-700 hover:bg-white hover:shadow-md'
                 )}
               >
-                <span>{cat}</span>
+                <span>{cat.label}</span>
                 {count > 0 && (
                   <span
                     className={cn(
@@ -255,6 +231,21 @@ export function TournamentCalendar() {
           <div className="flex items-center justify-center py-16">
             <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full" />
           </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-red-50 flex items-center justify-center">
+              <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <p className="text-red-600 font-medium">Error loading tournaments</p>
+            <p className="text-stone-400 text-sm mt-1">{error}</p>
+          </div>
         ) : filteredTournaments.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-stone-100 flex items-center justify-center">
@@ -272,92 +263,16 @@ export function TournamentCalendar() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredTournaments.map((tournament) => {
-              const config = optionConfig[tournament.tournament_type || 'proximity'] || optionConfig.proximity
-              const isHovered = hoveredCard === tournament.id
-              const assignedCoach = tournament.assignments?.find((a) => a.role === 'coach')?.coach
-              const assignedPlayers = tournament.assignments?.filter((a) => a.role === 'player') || []
+            {filteredTournaments.map(tournament => {
+              const assignedPlayers = getTournamentAssignedPlayers(tournament)
 
               return (
-                <div
+                <TournamentCard
                   key={tournament.id}
-                  onMouseEnter={() => setHoveredCard(tournament.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  className={cn(
-                    'group relative rounded-2xl overflow-hidden transition-all duration-500 cursor-pointer',
-                    isHovered ? 'scale-[1.02] shadow-2xl' : 'shadow-lg'
-                  )}
-                >
-                  {/* Card gradient background */}
-                  <div className={cn('absolute inset-0 bg-gradient-to-r', config.gradient)} />
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20" />
-
-                  {/* Shine effect on hover */}
-                  <div
-                    className={cn(
-                      'absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent',
-                      'transition-transform duration-700 -skew-x-12',
-                      isHovered ? 'translate-x-full' : '-translate-x-full'
-                    )}
-                  />
-
-                  {/* Content */}
-                  <div className="relative p-5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {/* Type badge */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs font-bold tracking-wider">
-                            {config.label}
-                          </span>
-                          {tournament.level && (
-                            <span className="px-3 py-1 bg-white/10 rounded-lg text-white/80 text-xs font-medium">
-                              {tournament.level}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Tournament name */}
-                        <h4 className="text-xl md:text-2xl font-bold text-white mb-2 tracking-tight">
-                          {tournament.name}
-                        </h4>
-
-                        {/* Location */}
-                        <div className="flex items-center gap-2 text-white/80 mb-3">
-                          <MapPin className="w-4 h-4" />
-                          <span className="font-medium">{tournament.location}</span>
-                        </div>
-
-                        {/* Coach & Players */}
-                        <div className="flex items-center gap-4 text-white/70 text-sm">
-                          {assignedCoach && (
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4" />
-                              <span>Coach: {assignedCoach.name}</span>
-                            </div>
-                          )}
-                          {assignedPlayers.length > 0 && (
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
-                              <span>{assignedPlayers.length} players</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Arrow indicator */}
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center',
-                          'transition-all duration-300',
-                          isHovered ? 'bg-white/20 translate-x-1' : ''
-                        )}
-                      >
-                        <ChevronRight className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  tournament={tournament}
+                  onClick={() => openModal(tournament)}
+                  assignedPlayers={assignedPlayers.length}
+                />
               )
             })}
           </div>
@@ -366,8 +281,8 @@ export function TournamentCalendar() {
 
       {/* Legend */}
       <div className="p-4 bg-stone-50 border-t border-stone-200">
-        <div className="flex items-center justify-center gap-6">
-          {Object.entries(optionConfig).map(([key, config]) => (
+        <div className="flex items-center justify-center gap-6 flex-wrap">
+          {Object.entries(typeConfig).map(([key, config]) => (
             <div key={key} className="flex items-center gap-2">
               <div className={cn('w-3 h-3 rounded-full bg-gradient-to-r', config.gradient)} />
               <span className="text-stone-500 text-xs font-medium tracking-wide">{config.label}</span>
@@ -375,6 +290,22 @@ export function TournamentCalendar() {
           ))}
         </div>
       </div>
+
+      {/* Tournament Detail Modal */}
+      <TournamentDetailModal
+        tournament={selectedTournament}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        assignedPlayers={selectedTournament ? getTournamentAssignedPlayers(selectedTournament) : []}
+        onAddToCalendar={(t) => {
+          console.log('Add to calendar:', t)
+          // TODO: Implement add to calendar functionality
+        }}
+        onAssignPlayers={(t) => {
+          console.log('Assign players:', t)
+          // TODO: Implement player assignment functionality
+        }}
+      />
     </div>
   )
 }

@@ -12,7 +12,7 @@ Tennis academy management system with AI-powered scheduling, player management, 
 > **UPDATE THIS WHEN SWITCHING FEATURES**
 
 ```
-CURRENT: Tournament Calendar Integration (Phase 1 - UI Foundation)
+CURRENT: Tournament Calendar Integration (Phase 3 - Data Fetching)
 SPEC: .claude/plans/tournament-calendar-integration.md
 BRANCH: feature/tournament-calendar-integration
 SUPABASE PROJECT: dhisrdvfocenhfarblxd
@@ -25,10 +25,37 @@ SUPABASE PROJECT: dhisrdvfocenhfarblxd
 - ✅ `src/hooks/tournament/use-tournament-sources.ts` - State + localStorage persistence
 - ✅ Updated `/tournaments/page.tsx` with FilterBar
 
-### Phase 2 Tasks (Next):
-1. **TournamentCard component** - Enhanced tournament display with full details
-2. **TournamentDetailModal** - Modal for tournament info + player assignment
-3. **useTournamentCalendar hook** - State management for calendar data
+### Phase 2 ✅ COMPLETE (Enhanced Tournament Display):
+- ✅ `src/components/tournament/tournament-card.tsx` - Enhanced tournament display with type styling, badges, hover effects
+- ✅ `src/components/tournament/tournament-detail-modal.tsx` - Modal with full details, deadline status, player assignment UI
+- ✅ `src/hooks/tournament/use-tournament-calendar.ts` - State management for calendar data, week navigation, category filtering
+- ✅ Updated `src/components/tournament/tournament-calendar.tsx` - Integrated new components
+- ✅ Fixed type imports across tournament components (TournamentWithDetails, CalendarTournament)
+- ✅ Updated `src/hooks/tournament/index.ts` - Exported new hook and types
+
+### Phase 3 ✅ COMPLETE (Data Fetching & Discovery):
+- ✅ `src/app/api/tournaments/discover/route.ts` - Discovery API endpoint
+  - POST endpoint accepts sources[] and dateRange
+  - Maps source IDs to tournament types (ITF, federation, tennis_europe, etc.)
+  - Queries both `academy_tournaments` and `scraped_tournaments` tables
+  - Returns combined, sorted results with metadata
+- ✅ `src/hooks/tournament/use-tournament-calendar.ts` - Updated to accept external tournaments
+  - New `UseTournamentCalendarOptions` interface
+  - `externalTournaments` prop bypasses internal fetching
+  - `isLoading` prop for external loading state
+- ✅ `src/components/tournament/tournament-calendar.tsx` - Updated with props
+  - Accepts optional `tournaments`, `isLoading`, `error` props
+  - Added error state UI with icon and message
+- ✅ `src/app/tournaments/page.tsx` - Converted to client component
+  - State management for discovered tournaments
+  - Discovery handler calls `/api/tournaments/discover`
+  - Shows discovery results summary
+  - Passes tournaments to TournamentCalendar
+
+### Phase 4 Tasks (Next):
+1. **Player assignment modal** - Assign players to discovered tournaments
+2. **Add to calendar functionality** - Add tournaments to academy calendar
+3. **Tournament registration tracking** - Track registration status
 
 ### Phase 1 COMPLETE (Foundation Setup):
 - ✅ Dependencies: @anthropic-ai/sdk, ai, cheerio, puppeteer-core, @sparticuz/chromium
@@ -341,16 +368,18 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 ## 📅 Last Updated
 > Update this when making significant changes to this file
 
-**Date:** 2025-12-30
+**Date:** 2025-12-31
 **By:** Claude Code
-**Changes:** Tournament Calendar Integration - Phase 1 COMPLETE
-- SourcesSelector: Multi-select dropdown for 12 tournament circuits
-- DateRangePicker: Dual-month calendar with presets (4 weeks, 3/6 months)
-- TournamentFilterBar: Combined filter component with Discover button
-- useTournamentSources hook: State management + localStorage persistence
-- Updated tournaments page layout
+**Changes:** Tournament Calendar Integration - Phase 3 COMPLETE
+- Discovery API endpoint: `/api/tournaments/discover` - queries academy + scraped tournaments
+- useTournamentCalendar hook: Now accepts external tournaments via props
+- TournamentCalendar component: Accepts optional tournaments, isLoading, error props with error UI
+- Tournaments page: Client component with discovery state management and API integration
+- Full end-to-end flow: Select sources → Pick dates → Discover → View tournaments in calendar
 
 Previous:
+- 2025-12-31: Tournament Calendar Integration - Phase 2 COMPLETE (Enhanced Display)
+- 2025-12-30: Tournament Calendar Integration - Phase 1 COMPLETE (UI Foundation)
 - 2025-12-29: Started feature planning, created 6-phase plan
 - Tournament Agent Phase 5 COMPLETE - Web scraping with Scrapfly
 - Player Database UI COMPLETE (all 8 hooks, 21+ components, security audit)

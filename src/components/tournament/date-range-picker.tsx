@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -20,6 +20,7 @@ import {
   differenceInDays,
   differenceInMonths,
   addWeeks,
+  startOfDay,
 } from 'date-fns'
 
 export interface DateRange {
@@ -94,7 +95,8 @@ function CalendarMonth({
     day = addDays(day, 1)
   }
 
-  const today = new Date()
+  // Normalize today to start of day for proper comparison
+  const today = startOfDay(new Date())
 
   return (
     <div className="p-3">
@@ -116,8 +118,9 @@ function CalendarMonth({
       <div className="grid grid-cols-7 gap-1">
         {days.map(date => {
           const isCurrentMonth = isSameMonth(date, month)
-          const isToday = isSameDay(date, today)
-          const isPast = isBefore(date, today) && !isToday
+          const normalizedDate = startOfDay(date)
+          const isToday = isSameDay(normalizedDate, today)
+          const isPast = isBefore(normalizedDate, today)
 
           // Range selection logic
           const isRangeStart = selectedRange && isSameDay(date, selectedRange.from)

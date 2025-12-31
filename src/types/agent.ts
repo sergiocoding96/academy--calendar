@@ -1,4 +1,4 @@
-import type { Json, Player, Coach, Tournament } from './database'
+import type { Json, Player, Profile, AcademyTournament } from './database'
 
 // ============================================
 // Tournament Source Types (for web scraping)
@@ -151,7 +151,7 @@ export interface TournamentRecommendation {
 
 // Extended recommendation with relations
 export interface RecommendationWithDetails extends TournamentRecommendation {
-  tournament: Tournament
+  tournament: AcademyTournament
   player?: Player
 }
 
@@ -280,10 +280,10 @@ export interface AgentNotification {
 
 export interface PlayerWithAvailability extends Player {
   availability?: PlayerAvailability[]
-  coach?: Coach
+  coach?: Profile
 }
 
-export interface TournamentWithRecommendation extends Tournament {
+export interface TournamentWithRecommendation extends AcademyTournament {
   recommendation?: TournamentRecommendation
   isRecommended?: boolean
 }

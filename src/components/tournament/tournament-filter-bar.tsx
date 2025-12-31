@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SourcesSelector } from './sources-selector'
@@ -23,6 +23,13 @@ export function TournamentFilterBar({
   onRefresh,
   isRefreshing = false,
 }: TournamentFilterBarProps) {
+  // Use refs to avoid stale closures in callbacks
+  const sourcesRef = useRef<string[]>([])
+  const dateRangeRef = useRef<DateRange>({
+    from: new Date(),
+    to: addWeeks(new Date(), 8),
+  })
+
   const [selectedSources, setSelectedSources] = useState<string[]>([])
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(),
@@ -30,14 +37,16 @@ export function TournamentFilterBar({
   })
 
   const handleSourcesChange = useCallback((sources: string[]) => {
+    sourcesRef.current = sources
     setSelectedSources(sources)
-    onFiltersChange?.({ sources, dateRange })
-  }, [dateRange, onFiltersChange])
+    onFiltersChange?.({ sources, dateRange: dateRangeRef.current })
+  }, [onFiltersChange])
 
   const handleDateRangeChange = useCallback((range: DateRange) => {
+    dateRangeRef.current = range
     setDateRange(range)
-    onFiltersChange?.({ sources: selectedSources, dateRange: range })
-  }, [selectedSources, onFiltersChange])
+    onFiltersChange?.({ sources: sourcesRef.current, dateRange: range })
+  }, [onFiltersChange])
 
   const handleRefresh = useCallback(() => {
     onRefresh?.()

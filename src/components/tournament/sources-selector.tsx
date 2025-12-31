@@ -110,10 +110,11 @@ export function SourcesSelector({ className, onSelectionChange }: SourcesSelecto
     selectedCount,
   } = useTournamentSources()
 
-  // Notify parent of selection changes
+  // Notify parent of selection changes (only when selectedIds changes)
   useEffect(() => {
     onSelectionChange?.(selectedIds)
-  }, [selectedIds, onSelectionChange])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds])
 
   // Close dropdown on outside click
   useEffect(() => {
