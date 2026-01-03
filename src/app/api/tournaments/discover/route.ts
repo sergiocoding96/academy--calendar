@@ -2,7 +2,7 @@
  * Tournament Discovery API
  *
  * Searches for tournaments based on selected sources and date range.
- * Queries both academy_tournaments and scraped_tournaments tables.
+ * Queries both tournaments (academy) and scraped_tournaments tables.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,7 +18,7 @@ interface DiscoverRequest {
   }
 }
 
-// Map source IDs to tournament_type values
+// Map source IDs to tournament_type values for the tournaments table
 const sourceToTypeMap: Record<string, string[]> = {
   'itf-juniors': ['itf'],
   'itf-seniors': ['itf'],
@@ -64,32 +64,32 @@ export async function POST(request: NextRequest) {
 
     const typesArray = Array.from(tournamentTypes)
 
-    // Query academy tournaments (approved/confirmed)
-    const { data: academyTournaments, error: academyError } = await supabase
-      .from('academy_tournaments')
+    // Query academy tournaments from the 'tournaments' table
+    let academyQuery = supabase
+      .from('tournaments')
       .select('*')
       .gte('start_date', dateRange.from)
       .lte('start_date', dateRange.to)
-      .order('start_date')
+
+    // Filter by tournament_type if specific types are selected
+    if (typesArray.length > 0) {
+      academyQuery = academyQuery.in('tournament_type', typesArray)
+    }
+
+    const { data: academyTournaments, error: academyError } = await academyQuery.order('start_date')
 
     if (academyError) {
       console.error('Error fetching academy tournaments:', academyError)
     }
 
-    // Query scraped tournaments
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let scrapedQuery = (supabase as any)
+    // Query scraped tournaments (no tournament_type filter - returns all scraped)
+    const { data: scrapedTournaments, error: scrapedError } = await supabase
       .from('scraped_tournaments')
       .select('*')
       .gte('start_date', dateRange.from)
       .lte('start_date', dateRange.to)
-
-    // Filter by tournament type if we have specific types
-    if (typesArray.length > 0) {
-      scrapedQuery = scrapedQuery.in('tournament_type', typesArray)
-    }
-
-    const { data: scrapedTournaments, error: scrapedError } = await scrapedQuery.order('start_date')
+      .eq('status', 'pending') // Only show pending scraped tournaments
+      .order('start_date')
 
     if (scrapedError) {
       console.error('Error fetching scraped tournaments:', scrapedError)
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
       })),
       ...(scrapedTournaments || []).map((t: Record<string, unknown>) => ({
         ...t,
+        website: t.website_url, // Map website_url to website for consistency
         _source: 'scraped',
       })),
     ]
