@@ -1,9 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getPlayers } from '../lib/queries'
 import { createPlayer } from '../lib/mutations'
 import type { Player, PlayerFilters, PlayerInsert } from '../types'
+
+interface UsePlayersOptions {
+  /** When provided, used as initial state and first client fetch is skipped (faster load). */
+  initialData?: Player[]
+}
 
 interface UsePlayersReturn {
   players: Player[]
@@ -15,11 +20,16 @@ interface UsePlayersReturn {
   addPlayer: (data: PlayerInsert) => Promise<Player>
 }
 
-export function usePlayers(initialFilters: PlayerFilters = {}): UsePlayersReturn {
-  const [players, setPlayers] = useState<Player[]>([])
-  const [loading, setLoading] = useState(true)
+export function usePlayers(
+  initialFilters: PlayerFilters = {},
+  options: UsePlayersOptions = {}
+): UsePlayersReturn {
+  const { initialData } = options
+  const [players, setPlayers] = useState<Player[]>(initialData ?? [])
+  const [loading, setLoading] = useState(initialData === undefined)
   const [error, setError] = useState<Error | null>(null)
   const [filters, setFiltersState] = useState<PlayerFilters>(initialFilters)
+  const hasFetchedWithInitial = useRef(false)
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true)
@@ -37,6 +47,10 @@ export function usePlayers(initialFilters: PlayerFilters = {}): UsePlayersReturn
   }, [filters])
 
   useEffect(() => {
+    if (initialData !== undefined && !hasFetchedWithInitial.current) {
+      hasFetchedWithInitial.current = true
+      return
+    }
     fetchPlayers()
   }, [fetchPlayers])
 

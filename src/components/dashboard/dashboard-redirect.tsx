@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth/auth-provider'
 
@@ -13,31 +13,34 @@ interface DashboardRedirectProps {
 export function DashboardRedirect({ serverProfile }: DashboardRedirectProps) {
   const router = useRouter()
   const { isGuest, profile, loading } = useAuth()
+  const hasRedirected = useRef(false)
 
   useEffect(() => {
-    if (loading) return
+    // Avoid double redirect
+    if (hasRedirected.current) return
 
-    // Guest users always go to coach dashboard to see full system
+    let target: string | null = null
+
+    // Guest: redirect immediately
     if (isGuest) {
-      router.replace('/dashboard/coach')
-      return
+      target = '/dashboard/coach'
+    }
+    // Server already gave us role: redirect without waiting for client profile
+    else if (serverProfile?.role === 'coach' || serverProfile?.role === 'admin') {
+      target = '/dashboard/coach'
+    } else if (serverProfile?.role === 'player') {
+      target = '/dashboard/player'
+    }
+    // No server profile: wait for client auth, then redirect or send to login
+    else if (!loading) {
+      if (!profile) target = '/login'
     }
 
-    // If we have a server profile, redirect based on role
-    if (serverProfile) {
-      if (serverProfile.role === 'coach' || serverProfile.role === 'admin') {
-        router.replace('/dashboard/coach')
-      } else {
-        router.replace('/dashboard/player')
-      }
-      return
+    if (target) {
+      hasRedirected.current = true
+      router.replace(target)
     }
-
-    // No profile at all, go to login
-    if (!profile) {
-      router.replace('/login')
-    }
-  }, [isGuest, serverProfile, profile, loading, router])
+  }, [isGuest, serverProfile?.role, profile, loading, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-50">

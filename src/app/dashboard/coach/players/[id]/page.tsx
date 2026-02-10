@@ -1,28 +1,17 @@
-'use client'
+import { getPlayerWithDetailsServer } from '@/features/player-database/lib/queries-server'
+import { CoachPlayerDetailClient } from './coach-player-detail-client'
 
-import { useRouter, useParams } from 'next/navigation'
-import { PlayerProfile } from '@/features/player-database/components'
+interface CoachPlayerDetailPageProps {
+  params: { id: string }
+}
 
-export default function CoachPlayerDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const playerId = params.id as string
-
-  const handleBack = () => {
-    router.push('/dashboard/coach/players')
-  }
-
-  const handleEdit = () => {
-    router.push(`/dashboard/coach/players/${playerId}/edit`)
-  }
+export default async function CoachPlayerDetailPage({ params }: CoachPlayerDetailPageProps) {
+  const player = await getPlayerWithDetailsServer(params.id)
 
   return (
-    <div className="p-8">
-      <PlayerProfile
-        playerId={playerId}
-        onBack={handleBack}
-        onEdit={handleEdit}
-      />
-    </div>
+    <CoachPlayerDetailClient
+      playerId={params.id}
+      initialPlayer={player}
+    />
   )
 }

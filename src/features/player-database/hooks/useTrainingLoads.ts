@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getPlayerTrainingLoads } from '../lib/queries'
 import { createTrainingLoad, updateTrainingLoad, deleteTrainingLoad } from '../lib/mutations'
 import type { TrainingLoad, TrainingLoadInsert, TrainingLoadUpdate, DateRange } from '../types'
 
 interface UseTrainingLoadsOptions {
   dateRange?: DateRange
+  /** Optional initial data to avoid first client fetch. */
+  initialData?: TrainingLoad[]
 }
 
 interface UseTrainingLoadsReturn {
@@ -25,10 +27,11 @@ export function useTrainingLoads(
   playerId: string | null,
   options: UseTrainingLoadsOptions = {}
 ): UseTrainingLoadsReturn {
-  const { dateRange } = options
-  const [trainingLoads, setTrainingLoads] = useState<TrainingLoad[]>([])
-  const [loading, setLoading] = useState(true)
+  const { dateRange, initialData } = options
+  const [trainingLoads, setTrainingLoads] = useState<TrainingLoad[]>(initialData ?? [])
+  const [loading, setLoading] = useState(initialData === undefined)
   const [error, setError] = useState<Error | null>(null)
+  const hasSkippedInitialFetch = useRef(false)
 
   const fetchLoads = useCallback(async () => {
     if (!playerId) {
@@ -52,8 +55,12 @@ export function useTrainingLoads(
   }, [playerId, dateRange])
 
   useEffect(() => {
+    if (initialData !== undefined && !hasSkippedInitialFetch.current) {
+      hasSkippedInitialFetch.current = true
+      return
+    }
     fetchLoads()
-  }, [fetchLoads])
+  }, [fetchLoads, initialData])
 
   const addLoad = useCallback(async (data: Omit<TrainingLoadInsert, 'player_id'>): Promise<TrainingLoad> => {
     if (!playerId) throw new Error('No player ID provided')

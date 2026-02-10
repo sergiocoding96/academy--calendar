@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Calendar,
   Users,
@@ -10,7 +10,8 @@ import {
   User,
   Trophy,
   ClipboardList,
-  CheckSquare
+  CheckSquare,
+  ClipboardCheck
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 
@@ -19,13 +20,20 @@ const navItems = [
   { href: '/dashboard/coach/players', label: 'My Players', icon: Users },
   { href: '/dashboard/coach/attendance', label: 'Attendance', icon: CheckSquare },
   { href: '/dashboard/coach/sessions', label: 'Sessions', icon: ClipboardList },
-  { href: '/sessions', label: 'Schedule', icon: Calendar },
+  { href: '/dashboard/coach/schedule', label: 'Schedule', icon: Calendar },
+  { href: '/dashboard/coach/approvals', label: 'Approvals', icon: ClipboardCheck },
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
 ]
 
 export function CoachSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { profile, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    await signOut()
+    window.location.href = '/login'
+  }
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href
@@ -55,6 +63,7 @@ export function CoachSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 active
                   ? 'bg-red-50 text-red-600'
@@ -82,7 +91,7 @@ export function CoachSidebar() {
           </div>
         </div>
         <button
-          onClick={signOut}
+          onClick={handleSignOut}
           className="flex items-center gap-3 px-4 py-3 w-full text-stone-600 hover:bg-stone-50 hover:text-stone-800 rounded-lg transition-colors"
         >
           <LogOut className="w-5 h-5" />

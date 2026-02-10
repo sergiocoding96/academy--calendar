@@ -14,11 +14,16 @@ export function HomeAuthButtons() {
     router.push('/dashboard')
   }
 
+  const handleSignOut = async () => {
+    await signOut()
+    window.location.href = '/login'
+  }
+
   if (user || isGuest) {
     return (
       <div className="flex items-center gap-3">
         <button
-          onClick={() => signOut()}
+          onClick={handleSignOut}
           className="px-4 py-2 text-red-200 hover:text-white transition-colors text-sm"
         >
           Sign out

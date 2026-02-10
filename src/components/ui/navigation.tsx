@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/auth-provider'
@@ -20,9 +20,16 @@ const publicNavItems = [
 
 export function Navigation() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, profile, signOut, loading } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const handleSignOut = async () => {
+    setDropdownOpen(false)
+    await signOut()
+    window.location.href = '/login'
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -136,10 +143,7 @@ export function Navigation() {
 
                         <div className="border-t border-stone-100 mt-2 pt-2">
                           <button
-                            onClick={() => {
-                              setDropdownOpen(false)
-                              signOut()
-                            }}
+                            onClick={handleSignOut}
                             className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                           >
                             <LogOut className="w-4 h-4" />

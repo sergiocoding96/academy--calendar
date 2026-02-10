@@ -2,7 +2,7 @@
 // Export all components from this file for easy imports
 
 // List & Table Components (Phase 3.1)
-export { PlayerList } from './PlayerList'
+export { PlayerList, type PlayerListRef } from './PlayerList'
 export { PlayerCard } from './PlayerCard'
 export { PlayerTable } from './PlayerTable'
 export { PlayerFilters } from './PlayerFilters'

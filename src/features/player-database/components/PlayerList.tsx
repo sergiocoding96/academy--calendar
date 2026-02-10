@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { LayoutGrid, List, Users, Plus, RefreshCw } from 'lucide-react'
 import { PlayerCard } from './PlayerCard'
 import { PlayerTable } from './PlayerTable'
@@ -12,8 +12,14 @@ import type { Player, PlayerFilters as PlayerFiltersType, Profile } from '../typ
 
 type ViewMode = 'grid' | 'table'
 
+export interface PlayerListRef {
+  refetch: () => Promise<void>
+}
+
 interface PlayerListProps {
   initialFilters?: PlayerFiltersType
+  /** Pre-fetched players from server; avoids client fetch on mount. */
+  initialPlayers?: Player[]
   coaches?: Profile[]
   getPlayerHref?: (player: Player) => string
   onPlayerClick?: (player: Player) => void
@@ -23,18 +29,26 @@ interface PlayerListProps {
   className?: string
 }
 
-export function PlayerList({
-  initialFilters = {},
-  coaches = [],
-  getPlayerHref,
-  onPlayerClick,
-  onAddPlayer,
-  showAddButton = true,
-  activeInjuryIds = new Set(),
-  className,
-}: PlayerListProps) {
+export const PlayerList = forwardRef<PlayerListRef, PlayerListProps>(function PlayerList(
+  {
+    initialFilters = {},
+    initialPlayers,
+    coaches = [],
+    getPlayerHref,
+    onPlayerClick,
+    onAddPlayer,
+    showAddButton = true,
+    activeInjuryIds = new Set(),
+    className,
+  },
+  ref
+) {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const { players, loading, error, filters, setFilters, refetch } = usePlayers(initialFilters)
+  const { players, loading, error, filters, setFilters, refetch } = usePlayers(initialFilters, {
+    initialData: initialPlayers,
+  })
+
+  useImperativeHandle(ref, () => ({ refetch }), [refetch])
 
   const handleSearchChange = useCallback(
     (search: string) => {
@@ -234,4 +248,4 @@ export function PlayerList({
       )}
     </div>
   )
-}
+})
