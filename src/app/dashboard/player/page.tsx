@@ -17,53 +17,55 @@ export default async function PlayerDashboardPage() {
   let upcomingTournaments: any[] | null = null
 
   if (playerId) {
-    const [sessionsRes, goalsRes, tournamentsRes] = await Promise.all([
-      supabase
-        .from('session_players')
-        .select(`
-          session:sessions(
-            id,
-            date,
-            start_time,
-            end_time,
-            session_type,
-            court:courts(name)
-          )
-        `)
-        .eq('player_id', playerId)
-        .gte('session.date', today)
-        .order('session(date)', { ascending: true })
-        .limit(5)
-        .then((r) => r.data as any[] | null)
-        .catch(() => null),
-      supabase
-        .from('goals')
-        .select('*', { count: 'exact', head: true })
-        .eq('player_id', playerId)
-        .eq('status', 'active')
-        .then((r) => r.count ?? 0)
-        .catch(() => 0),
-      supabase
-        .from('tournament_assignments')
-        .select(`
-          tournament:tournaments(
-            id,
-            name,
-            start_date,
-            end_date,
-            location
-          )
-        `)
-        .eq('player_id', playerId)
-        .gte('tournament.start_date', today)
-        .order('tournament(start_date)', { ascending: true })
-        .limit(3)
-        .then((r) => r.data as any[] | null)
-        .catch(() => null),
-    ])
-    upcomingSessions = sessionsRes
-    activeGoalsCount = goalsRes
-    upcomingTournaments = tournamentsRes
+    try {
+      const [sessionsRes, goalsRes, tournamentsRes] = await Promise.all([
+        supabase
+          .from('session_players')
+          .select(`
+            session:sessions(
+              id,
+              date,
+              start_time,
+              end_time,
+              session_type,
+              court:courts(name)
+            )
+          `)
+          .eq('player_id', playerId)
+          .gte('session.date', today)
+          .order('session(date)', { ascending: true })
+          .limit(5),
+        supabase
+          .from('goals')
+          .select('*', { count: 'exact', head: true })
+          .eq('player_id', playerId)
+          .eq('status', 'active'),
+        supabase
+          .from('tournament_assignments')
+          .select(`
+            tournament:tournaments(
+              id,
+              name,
+              start_date,
+              end_date,
+              location
+            )
+          `)
+          .eq('player_id', playerId)
+          .gte('tournament.start_date', today)
+          .order('tournament(start_date)', { ascending: true })
+          .limit(3),
+      ])
+
+      upcomingSessions = (sessionsRes.data as any[] | null) ?? null
+      activeGoalsCount = goalsRes.count ?? 0
+      upcomingTournaments = (tournamentsRes.data as any[] | null) ?? null
+    } catch {
+      // Swallow errors so the dashboard still loads with empty state
+      upcomingSessions = null
+      activeGoalsCount = 0
+      upcomingTournaments = null
+    }
   }
 
   const formatTime = (time: string) => {
