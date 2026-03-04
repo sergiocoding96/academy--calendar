@@ -171,7 +171,7 @@ export async function PATCH(
   }
 
   const supabase = await createClient()
-  const { data: req, error: fetchError } = await supabase
+  const { data: req, error: fetchError } = await (supabase as any)
     .from('schedule_change_requests')
     .select('id, change_type, target_session_id, status, reason, proposed_payload, approved_payload')
     .eq('id', id)
@@ -188,7 +188,7 @@ export async function PATCH(
   const payloadToApply = action === 'modify_approve' ? modified_payload ?? req.proposed_payload : req.proposed_payload
 
   if (action === 'reject') {
-    await supabase
+    await (supabase as any)
       .from('schedule_change_requests')
       .update({
         status: 'rejected',
@@ -238,7 +238,7 @@ export async function PATCH(
     )
   }
 
-  await supabase
+  await (supabase as any)
     .from('schedule_change_requests')
     .update({
       status: action === 'modify_approve' ? 'modified_approved' : 'approved',
