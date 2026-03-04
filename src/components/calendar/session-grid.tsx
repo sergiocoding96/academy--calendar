@@ -7,12 +7,37 @@ import { cn, generateTimeSlots, getCoachColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/components/auth/auth-provider'
 import { MOCK_CALENDAR_SESSIONS } from '@/lib/mock-data'
-import type { Session, Coach, Court, Player } from '@/types/database'
 
-interface SessionWithDetails extends Session {
-  coach?: Coach
-  court?: Court
-  players?: Player[]
+type CalendarSession = {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  session_type: string
+  court_id: string
+  is_private?: boolean
+}
+
+type CalendarCoach = {
+  id?: string
+  name: string
+}
+
+type CalendarCourt = {
+  id?: string
+  name: string
+  surface?: string
+}
+
+type CalendarPlayer = {
+  id?: string
+  name: string
+}
+
+interface SessionWithDetails extends CalendarSession {
+  coach?: CalendarCoach
+  court?: CalendarCourt
+  players?: CalendarPlayer[]
 }
 
 const COURTS = [
