@@ -30,7 +30,7 @@ async function applyChange(
       if (!targetSessionId || typeof payload?.start_time !== 'string' || typeof payload?.end_time !== 'string') {
         return { ok: false, error: 'Invalid move_time payload' }
       }
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('sessions')
         .update({ start_time: payload.start_time, end_time: payload.end_time })
         .eq('id', targetSessionId)
