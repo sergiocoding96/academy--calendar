@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status') || 'pending'
 
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('schedule_change_requests')
     .select(`
       id,
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('schedule_change_requests')
     .insert({
       proposer_id: profile.id,
