@@ -50,9 +50,16 @@ async function applyChange(
     }
     case 'cancel_session': {
       if (!targetSessionId) return { ok: false, error: 'Missing target session' }
-      const { data: session } = await supabase.from('sessions').select('notes').eq('id', targetSessionId).single()
+      const { data: session } = await (supabase as any)
+        .from('sessions')
+        .select('notes')
+        .eq('id', targetSessionId)
+        .single()
       const notes = session?.notes ? `${session.notes} [Cancelled]` : '[Cancelled]'
-      const { error: updateErr } = await supabase.from('sessions').update({ notes }).eq('id', targetSessionId)
+      const { error: updateErr } = await (supabase as any)
+        .from('sessions')
+        .update({ notes })
+        .eq('id', targetSessionId)
       if (updateErr) return { ok: false, error: updateErr.message }
       await supabase.from('session_players').update({ status: 'cancelled' }).eq('session_id', targetSessionId)
       break
