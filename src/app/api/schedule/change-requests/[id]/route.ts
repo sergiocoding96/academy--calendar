@@ -61,7 +61,10 @@ async function applyChange(
         .update({ notes })
         .eq('id', targetSessionId)
       if (updateErr) return { ok: false, error: updateErr.message }
-      await supabase.from('session_players').update({ status: 'cancelled' }).eq('session_id', targetSessionId)
+      await (supabase as any)
+        .from('session_players')
+        .update({ status: 'cancelled' })
+        .eq('session_id', targetSessionId)
       break
     }
     case 'remove_player': {
