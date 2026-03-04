@@ -7,14 +7,40 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/components/auth/auth-provider'
 import { MOCK_CALENDAR_TOURNAMENTS } from '@/lib/mock-data'
-import type { Tournament, TournamentAssignment, Coach, Player } from '@/types/database'
 
-interface TournamentWithDetails extends Tournament {
-  assignments?: (TournamentAssignment & {
-    coach?: Coach
-    player?: Player
-  })[]
+type CalendarCoach = {
+  id?: string
+  name: string
 }
+
+type CalendarPlayer = {
+  id?: string
+  name: string
+}
+
+type CalendarTournamentAssignment = {
+  id: string
+  tournament_id: string
+  role: 'coach' | 'player'
+  coach_id: string | null
+  player_id: string | null
+  coach?: CalendarCoach
+  player?: CalendarPlayer
+}
+
+type CalendarTournament = {
+  id: string
+  name: string
+  location: string | null
+  start_date: string
+  end_date: string
+  category: string | null
+  level: string | null
+  tournament_type: 'proximity' | 'national' | 'international'
+  assignments?: CalendarTournamentAssignment[]
+}
+
+interface TournamentWithDetails extends CalendarTournament {}
 
 const optionConfig: Record<string, { gradient: string; glow: string; label: string }> = {
   proximity: {
