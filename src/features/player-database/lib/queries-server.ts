@@ -82,7 +82,7 @@ async function getPlayerServer(playerId: string): Promise<PlayerWithCoach> {
   const supabase = await createClient()
 
   // Try full schema with coach join first
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('players')
     .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
     .eq('id', playerId)
@@ -93,7 +93,7 @@ async function getPlayerServer(playerId: string): Promise<PlayerWithCoach> {
   }
 
   // Fallback: plain select (no profiles relationship in this project)
-  const fb = await supabase
+  const fb = await (supabase as any)
     .from('players')
     .select('*')
     .eq('id', playerId)
