@@ -135,7 +135,7 @@ async function applyChange(
       return { ok: false, error: `Unknown change type: ${changeType}` }
   }
 
-  const { error: auditError } = await supabase.from('schedule_audit_log').insert({
+  const { error: auditError } = await (supabase as any).from('schedule_audit_log').insert({
     change_request_id: requestId,
     action: 'applied',
     performed_by: approvedBy,
@@ -198,7 +198,7 @@ export async function PATCH(
         updated_at: now,
       })
       .eq('id', id)
-    await supabase.from('schedule_audit_log').insert({
+    await (supabase as any).from('schedule_audit_log').insert({
       change_request_id: id,
       action: 'rejected',
       performed_by: profile.id,
