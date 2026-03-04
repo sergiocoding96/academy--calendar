@@ -1345,6 +1345,17 @@ export type UtrMatchHistory = Database['public']['Tables']['utr_match_history'][
 // ============================================
 // EXTENDED TYPES WITH RELATIONS
 // ============================================
+export type UserProfile = {
+  id: string
+  email: string | null
+  full_name: string | null
+  role: UserRole
+  player_id: string | null
+  coach_id: string | null
+  created_at: string
+  avatar_url: string | null
+}
+
 export type PlayerWithCoach = Player & {
   coach?: Profile | null
 }
