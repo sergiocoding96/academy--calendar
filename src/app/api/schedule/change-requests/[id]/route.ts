@@ -9,7 +9,15 @@ async function applyChange(
   requestId: string,
   changeType: string,
   targetSessionId: string | null,
-  payload: Record<string, unknown> | null,
+  payload: {
+    start_time?: string
+    end_time?: string
+    court_id?: string
+    player_id?: string
+    date?: string
+    coach_id?: string
+    session_type?: string
+  } | null,
   approvedBy: string,
   approverCoachId: string | null
 ): Promise<ApplyResult> {
