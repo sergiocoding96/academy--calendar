@@ -9,7 +9,7 @@ export async function GET() {
   }
 
   const supabase = await createClient()
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('master_schedule')
     .select(`
       id,
@@ -29,8 +29,8 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const withPlayers = await Promise.all(
-    (data || []).map(async (slot) => {
-      const { data: players } = await supabase
+    (data || []).map(async (slot: { id: string }) => {
+      const { data: players } = await (supabase as any)
         .from('master_schedule_players')
         .select('player_id, player:players(id, name)')
         .eq('master_schedule_id', slot.id)
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient()
-  const { data: slot, error: slotError } = await supabase
+  const { data: slot, error: slotError } = await (supabase as any)
     .from('master_schedule')
     .insert({
       day_of_week,
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
   if (!slot) return NextResponse.json({ error: 'Insert failed' }, { status: 500 })
 
   if (Array.isArray(player_ids) && player_ids.length > 0) {
-    await supabase.from('master_schedule_players').insert(
-      player_ids.map((player_id) => ({ master_schedule_id: slot.id, player_id }))
+    await (supabase as any).from('master_schedule_players').insert(
+      player_ids.map((player_id: string) => ({ master_schedule_id: slot.id, player_id }))
     )
   }
 
