@@ -71,7 +71,7 @@ async function applyChange(
       if (!targetSessionId || typeof payload?.player_id !== 'string') {
         return { ok: false, error: 'Invalid remove_player payload' }
       }
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('session_players')
         .delete()
         .eq('session_id', targetSessionId)
@@ -83,7 +83,7 @@ async function applyChange(
       if (!targetSessionId || typeof payload?.player_id !== 'string') {
         return { ok: false, error: 'Invalid add_player payload' }
       }
-      const { error } = await supabase.from('session_players').insert({
+      const { error } = await (supabase as any).from('session_players').insert({
         session_id: targetSessionId,
         player_id: payload.player_id,
         status: 'confirmed',
@@ -111,7 +111,7 @@ async function applyChange(
         }
       }
 
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error } = await (supabase as any)
         .from('sessions')
         .insert({
           date,
