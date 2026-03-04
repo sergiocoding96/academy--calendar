@@ -1315,6 +1315,7 @@ export interface Database {
 // ============================================
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Player = Database['public']['Tables']['players']['Row']
+export type Coach = Profile
 export type UtrHistory = Database['public']['Tables']['utr_history']['Row']
 export type Injury = Database['public']['Tables']['injuries']['Row']
 export type PlayerNote = Database['public']['Tables']['player_notes']['Row']
@@ -1336,6 +1337,7 @@ export type VehicleAssignment = Database['public']['Tables']['vehicle_assignment
 export type Expense = Database['public']['Tables']['expenses']['Row']
 export type DiscoveredTournament = Database['public']['Tables']['discovered_tournaments']['Row']
 export type AcademyTournament = Database['public']['Tables']['academy_tournaments']['Row']
+export type Tournament = AcademyTournament
 export type TournamentRegistration = Database['public']['Tables']['tournament_registrations']['Row']
 export type TournamentMatch = Database['public']['Tables']['tournament_matches']['Row']
 export type UtrMatchplayWeek = Database['public']['Tables']['utr_matchplay_weeks']['Row']
