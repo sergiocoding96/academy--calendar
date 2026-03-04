@@ -41,7 +41,7 @@ async function applyChange(
       if (!targetSessionId || payload?.court_id == null) {
         return { ok: false, error: 'Invalid change_court payload' }
       }
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('sessions')
         .update({ court_id: payload.court_id as string })
         .eq('id', targetSessionId)
