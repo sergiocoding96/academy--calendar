@@ -1,5 +1,10 @@
 // Supabase Edge Function: post schedule events to Slack
 // Set secrets: SLACK_BOT_TOKEN, SLACK_CHANNEL_ID (e.g. C01234ABCD)
+// Declare Deno for TypeScript when compiled outside the Deno runtime
+declare const Deno: {
+  serve: (handler: (req: Request) => Promise<Response> | Response) => void
+  env: { get(name: string): string | undefined }
+}
 
 const SLACK_API = 'https://slack.com/api/chat.postMessage'
 
