@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns'
 import { cn, generateTimeSlots, getCoachColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/components/auth/auth-provider'
 import { MOCK_CALENDAR_SESSIONS } from '@/lib/mock-data'
+import { Modal } from '@/components/ui/modal'
 
 type CalendarSession = {
   id: string
@@ -40,6 +42,8 @@ interface SessionWithDetails extends CalendarSession {
   players?: CalendarPlayer[]
 }
 
+const UNASSIGNED_COURT_ID = '__unassigned__'
+
 const COURTS = [
   { id: 'hc1', name: 'HC 1', surface: 'Hard' },
   { id: 'hc2', name: 'HC 2', surface: 'Hard' },
@@ -47,12 +51,14 @@ const COURTS = [
   { id: 'clay2', name: 'Clay 2', surface: 'Clay' },
   { id: 'clay3', name: 'Clay 3', surface: 'Clay' },
   { id: 'hc3', name: 'HC 3', surface: 'Hard' },
+  { id: UNASSIGNED_COURT_ID, name: 'TBC', surface: '' },
 ]
 
 const TIME_SLOTS = generateTimeSlots(7, 21)
 
 export function SessionGrid() {
-  const { isGuest } = useAuth()
+  const router = useRouter()
+  const { isGuest, profile } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date())
   const [sessions, setSessions] = useState<SessionWithDetails[]>([])
@@ -61,61 +67,150 @@ export function SessionGrid() {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
-  // Fetch sessions from Supabase or use mock data for guest
-  useEffect(() => {
-    async function fetchSessions() {
-      setLoading(true)
+  // Add Session modal state (for coaches/admins)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addDate, setAddDate] = useState<Date | null>(null)
+  const [addStartTime, setAddStartTime] = useState('09:00')
+  const [addEndTime, setAddEndTime] = useState('10:00')
+  const [addType, setAddType] = useState('training')
+  const [addReason, setAddReason] = useState('')
+  const [addSubmitting, setAddSubmitting] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
-      // Use mock data for guest users
-      if (isGuest) {
-        const dateStr = format(selectedDay, 'yyyy-MM-dd')
-        const mockSessionsForDay = MOCK_CALENDAR_SESSIONS.filter(
-          (session) => session.date === dateStr
-        ).map((session) => ({
-          ...session,
-          players: session.players,
-        })) as SessionWithDetails[]
-        setSessions(mockSessionsForDay)
-        setLoading(false)
+  const handleAddSessionClick = () => {
+    if (isGuest || !profile) {
+      router.push('/login?redirect=/sessions')
+      return
+    }
+
+    if (profile.role === 'coach' || profile.role === 'admin') {
+      setAddError(null)
+      setAddReason('')
+      setAddDate(selectedDay)
+      setAddOpen(true)
+      return
+    }
+
+    // Players or other roles just go to their dashboard
+    router.push('/dashboard')
+  }
+
+  const handleSubmitAddSession = async () => {
+    if (!addDate) {
+      setAddError('Date is required')
+      return
+    }
+    if (!addReason.trim()) {
+      setAddError('Reason is required')
+      return
+    }
+
+    setAddSubmitting(true)
+    setAddError(null)
+
+    try {
+      const dateStr = format(addDate, 'yyyy-MM-dd')
+
+      const res = await fetch('/api/schedule/change-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          change_type: 'add_session',
+          target_session_id: null,
+          reason: addReason.trim(),
+          proposed_payload: {
+            date: dateStr,
+            start_time: addStartTime,
+            end_time: addEndTime,
+            // court_id / coach_id optional for now
+            session_type: addType,
+          },
+        }),
+      })
+
+      const data = await res.json().catch(() => ({} as any))
+      if (!res.ok) {
+        setAddError(data.error || 'Failed to create session request')
         return
       }
 
-      const supabase = createClient()
+      setAddOpen(false)
+    } catch {
+      setAddError('Unexpected error submitting request')
+    } finally {
+      setAddSubmitting(false)
+    }
+  }
+
+  // Fetch sessions from Supabase or use mock data for guest
+  const fetchSessions = useCallback(async () => {
+    setLoading(true)
+
+    if (isGuest) {
       const dateStr = format(selectedDay, 'yyyy-MM-dd')
-
-      const { data, error } = await supabase
-        .from('sessions')
-        .select(`
-          *,
-          coach:coaches(*),
-          court:courts(*),
-          session_players(
-            player:players(*)
-          )
-        `)
-        .eq('date', dateStr)
-        .order('start_time')
-
-      if (error) {
-        console.error('Error fetching sessions:', error)
-      } else {
-        const sessionsWithPlayers = data?.map((session: any) => ({
-          ...session,
-          players: session.session_players?.map((sp: any) => sp.player).filter(Boolean)
-        })) || []
-        setSessions(sessionsWithPlayers)
-      }
-
+      const mockSessionsForDay = MOCK_CALENDAR_SESSIONS.filter(
+        (session) => session.date === dateStr
+      ).map((session) => ({
+        ...session,
+        players: session.players,
+      })) as SessionWithDetails[]
+      setSessions(mockSessionsForDay)
       setLoading(false)
+      return
     }
 
-    fetchSessions()
+    const supabase = createClient()
+    const dateStr = format(selectedDay, 'yyyy-MM-dd')
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .select(`
+        *,
+        coach:coaches(*),
+        court:courts(*),
+        session_players(
+          player:players(*)
+        )
+      `)
+      .eq('date', dateStr)
+      .order('start_time')
+
+    if (error) {
+      console.error('Error fetching sessions:', error)
+    } else {
+      const sessionsWithPlayers = data?.map((session: any) => ({
+        ...session,
+        players: session.session_players?.map((sp: any) => sp.player).filter(Boolean)
+      })) || []
+      setSessions(sessionsWithPlayers)
+    }
+
+    setLoading(false)
   }, [selectedDay, isGuest])
+
+  useEffect(() => {
+    fetchSessions()
+  }, [fetchSessions])
+
+  // Refetch when user returns to this tab (e.g. after approving a new session on another page)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isGuest) {
+        fetchSessions()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [fetchSessions, isGuest])
 
   const getSessionsForSlot = (courtId: string, timeSlot: string) => {
     return sessions.filter(session => {
       const sessionStart = session.start_time?.substring(0, 5)
-      return session.court_id === courtId && sessionStart === timeSlot
+      const timeMatches = sessionStart === timeSlot
+      if (courtId === UNASSIGNED_COURT_ID) {
+        return (session.court_id == null || session.court_id === '') && timeMatches
+      }
+      return session.court_id === courtId && timeMatches
     })
   }
 
@@ -146,7 +241,11 @@ export function SessionGrid() {
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            onClick={handleAddSessionClick}
+            type="button"
+          >
             <Plus className="w-4 h-4" />
             Add Session
           </button>
@@ -181,7 +280,7 @@ export function SessionGrid() {
       </div>
 
       {/* Grid Header - Courts */}
-      <div className="grid grid-cols-[80px_repeat(6,1fr)] border-b border-stone-200">
+      <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-stone-200">
         <div className="p-3 bg-stone-50 border-r border-stone-200">
           <span className="text-xs font-medium text-stone-500">Time</span>
         </div>
@@ -206,7 +305,7 @@ export function SessionGrid() {
           TIME_SLOTS.map((timeSlot) => (
             <div
               key={timeSlot}
-              className="grid grid-cols-[80px_repeat(6,1fr)] border-b border-stone-100 last:border-b-0"
+              className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-stone-100 last:border-b-0"
             >
               {/* Time Label */}
               <div className="p-2 border-r border-stone-200 bg-stone-50 flex items-start justify-end pr-3">
@@ -265,6 +364,114 @@ export function SessionGrid() {
           ))}
         </div>
       </div>
+
+      {/* Add Session Modal (for coach/admin) */}
+      <Modal
+        isOpen={addOpen}
+        onClose={() => !addSubmitting && setAddOpen(false)}
+        title="Request new session"
+        description="Propose a new training session for approval."
+        size="lg"
+      >
+        <div className="space-y-4">
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Date</label>
+            <input
+              type="date"
+              value={addDate ? format(addDate, 'yyyy-MM-dd') : ''}
+              onChange={(e) =>
+                setAddDate(e.target.value ? new Date(e.target.value) : null)
+              }
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={addSubmitting}
+            />
+          </div>
+
+          {/* Time range */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                Start time
+              </label>
+              <input
+                type="time"
+                value={addStartTime}
+                onChange={(e) => setAddStartTime(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={addSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">
+                End time
+              </label>
+              <input
+                type="time"
+                value={addEndTime}
+                onChange={(e) => setAddEndTime(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={addSubmitting}
+              />
+            </div>
+          </div>
+
+          {/* Session type */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Session type
+            </label>
+            <select
+              value={addType}
+              onChange={(e) => setAddType(e.target.value)}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={addSubmitting}
+            >
+              <option value="training">Training</option>
+              <option value="private">Private</option>
+              <option value="group">Group</option>
+              <option value="fitness">Fitness</option>
+              <option value="physio">Physio</option>
+            </select>
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Reason *
+            </label>
+            <textarea
+              value={addReason}
+              onChange={(e) => setAddReason(e.target.value)}
+              placeholder="Why do you need this session?"
+              rows={3}
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={addSubmitting}
+            />
+          </div>
+
+          {addError && <p className="text-sm text-red-600">{addError}</p>}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setAddOpen(false)}
+              disabled={addSubmitting}
+              className="px-4 py-2 text-sm text-stone-600 hover:text-stone-800 rounded-lg disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmitAddSession}
+              disabled={addSubmitting || !addDate || !addReason.trim()}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {addSubmitting ? 'Submitting...' : 'Submit request'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

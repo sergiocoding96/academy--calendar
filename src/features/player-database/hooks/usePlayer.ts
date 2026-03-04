@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getPlayer, getPlayerWithDetails } from '../lib/queries'
 import { updatePlayer, deletePlayer, togglePlayerActive } from '../lib/mutations'
 import type { Player, PlayerWithDetails, PlayerUpdate } from '../types'
 
 interface UsePlayerOptions {
   withDetails?: boolean
+  /** Optional initial data (e.g. from server) to avoid first client fetch. */
+  initialData?: Player | PlayerWithDetails | null
 }
 
 interface UsePlayerReturn {
@@ -23,10 +25,11 @@ export function usePlayer(
   playerId: string | null,
   options: UsePlayerOptions = {}
 ): UsePlayerReturn {
-  const { withDetails = false } = options
-  const [player, setPlayer] = useState<Player | PlayerWithDetails | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { withDetails = false, initialData } = options
+  const [player, setPlayer] = useState<Player | PlayerWithDetails | null>(initialData ?? null)
+  const [loading, setLoading] = useState(initialData == null)
   const [error, setError] = useState<Error | null>(null)
+  const hasSkippedInitialFetch = useRef(false)
 
   const fetchPlayer = useCallback(async () => {
     if (!playerId) {
@@ -51,8 +54,14 @@ export function usePlayer(
   }, [playerId, withDetails])
 
   useEffect(() => {
+    // If we were given initial data (e.g. from a server component), skip the
+    // first client fetch and only fetch again when dependencies change later.
+    if (initialData !== undefined && !hasSkippedInitialFetch.current) {
+      hasSkippedInitialFetch.current = true
+      return
+    }
     fetchPlayer()
-  }, [fetchPlayer])
+  }, [fetchPlayer, initialData])
 
   const update = useCallback(async (data: PlayerUpdate) => {
     if (!playerId) return

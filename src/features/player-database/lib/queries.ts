@@ -1,5 +1,9 @@
 // Player Database Query Functions
 // Supabase query builders for player-related data
+//
+// Queries try the full schema first (profiles join). If the migration
+// hasn't been run yet they fall back to a plain select so the page
+// still loads.
 
 import { createClient } from '@/lib/supabase/client'
 import type { PlayerFilterOptions, DateRange, Player, PlayerWithDetails, Profile } from '../types'
@@ -9,58 +13,75 @@ type PlayerWithCoach = Player & {
   coach?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
 }
 
+/** Normalise a row from the old schema (name, status, primary_coach_id) into
+ *  the shape the UI expects (full_name, is_active, coach_id). */
+function normalisePlayer(row: any): any {
+  return {
+    ...row,
+    full_name: row.full_name ?? row.name ?? 'Unknown',
+    is_active: row.is_active ?? (row.status !== 'inactive'),
+    category: row.category ?? row.age_group ?? null,
+    coach_id: row.coach_id ?? row.primary_coach_id ?? null,
+    coach: row.coach ?? null,
+  }
+}
+
 // Player Queries
 export async function getPlayer(playerId: string): Promise<PlayerWithCoach> {
   const supabase = createClient()
+
+  // Try full schema with coach join
   const { data, error } = await supabase
     .from('players')
-    .select(`
-      *,
-      coach:profiles!players_coach_id_fkey(id, full_name, avatar_url)
-    `)
+    .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
     .eq('id', playerId)
     .single()
 
-  if (error) throw error
-  return data as PlayerWithCoach
+  if (!error) return data as PlayerWithCoach
+
+  // Fallback: plain select
+  const fb = await supabase.from('players').select('*').eq('id', playerId).single()
+  if (fb.error) throw fb.error
+  return normalisePlayer(fb.data) as PlayerWithCoach
 }
 
 export async function getPlayers(filters?: PlayerFilterOptions): Promise<PlayerWithCoach[]> {
   const supabase = createClient()
+
+  // Try full schema
   let query = supabase
     .from('players')
-    .select(`
-      *,
-      coach:profiles!players_coach_id_fkey(id, full_name, avatar_url)
-    `)
+    .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
     .order('full_name')
 
-  if (filters?.category) {
-    query = query.eq('category', filters.category)
-  }
-  if (filters?.coachId) {
-    query = query.eq('coach_id', filters.coachId)
-  }
-  if (filters?.isActive !== undefined) {
-    query = query.eq('is_active', filters.isActive)
-  }
-  if (filters?.search) {
-    query = query.ilike('full_name', `%${filters.search}%`)
-  }
+  if (filters?.category) query = query.eq('category', filters.category)
+  if (filters?.coachId) query = query.eq('coach_id', filters.coachId)
+  if (filters?.isActive !== undefined) query = query.eq('is_active', filters.isActive)
+  if (filters?.search) query = query.ilike('full_name', `%${filters.search}%`)
 
   const { data, error } = await query
-  if (error) throw error
-  return (data || []) as PlayerWithCoach[]
+  if (!error) return (data || []) as PlayerWithCoach[]
+
+  // Fallback: plain select (old schema)
+  let fbQuery = supabase.from('players').select('*').order('name')
+  if (filters?.search) fbQuery = fbQuery.ilike('name', `%${filters.search}%`)
+
+  const fb = await fbQuery
+  if (fb.error) throw fb.error
+  return (fb.data || []).map(normalisePlayer) as PlayerWithCoach[]
 }
 
 export async function getPlayerWithDetails(playerId: string): Promise<PlayerWithDetails> {
   const last30Days = { start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), end: new Date() }
+
+  // getPlayer is resilient; the sub-table queries use try/catch so they
+  // return [] if the table doesn't exist yet.
   const [player, injuries, notes, utrHistory, trainingLoads] = await Promise.all([
     getPlayer(playerId),
-    getPlayerInjuries(playerId),
-    getPlayerNotes(playerId),
-    getPlayerUtrHistory(playerId, last30Days),
-    getPlayerTrainingLoads(playerId, last30Days)
+    getPlayerInjuries(playerId).catch(() => []),
+    getPlayerNotes(playerId).catch(() => []),
+    getPlayerUtrHistory(playerId, last30Days).catch(() => []),
+    getPlayerTrainingLoads(playerId, last30Days).catch(() => []),
   ])
 
   return {
@@ -210,12 +231,26 @@ export async function getPlayerAttendance(playerId: string, dateRange?: DateRang
 // Coach Queries (for dropdowns)
 export async function getCoaches() {
   const supabase = createClient()
+
+  // Try profiles table first (new schema)
   const { data, error } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url')
     .eq('role', 'coach')
     .order('full_name')
 
-  if (error) throw error
-  return data || []
+  if (!error) return data || []
+
+  // Fallback: use coaches table (old schema)
+  const fb = await supabase
+    .from('coaches')
+    .select('id, name, email')
+    .order('name')
+
+  if (fb.error) throw fb.error
+  return (fb.data || []).map((c: any) => ({
+    id: c.id,
+    full_name: c.name,
+    avatar_url: null,
+  }))
 }

@@ -58,6 +58,9 @@ export function RegisterForm() {
         return
       }
 
+      // Ensure the client has the new session before authenticated requests (fixes RLS auth.uid() null)
+      await supabase.auth.getSession()
+
       let playerId: string | null = null
       let coachId: string | null = null
 
@@ -73,8 +76,7 @@ export function RegisterForm() {
           .single() as { data: { id: string } | null, error: any }
 
         if (playerError || !playerData) {
-          console.error('Player creation error:', playerError)
-          setError('Failed to create player profile')
+          setError(playerError?.message ?? 'Failed to create player profile. Ensure the database has the players table (run Supabase migration).')
           setLoading(false)
           return
         }
@@ -90,8 +92,7 @@ export function RegisterForm() {
           .single() as { data: { id: string } | null, error: any }
 
         if (coachError || !coachData) {
-          console.error('Coach creation error:', coachError)
-          setError('Failed to create coach profile')
+          setError(coachError?.message ?? 'Failed to create coach profile. Ensure the database has the coaches table (run Supabase migration).')
           setLoading(false)
           return
         }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getPlayerWhereabouts, getUpcomingWhereabouts } from '../lib/queries'
 import { createWhereabouts, updateWhereabouts, deleteWhereabouts } from '../lib/mutations'
 import type { Whereabouts, WhereaboutsInsert, WhereaboutsUpdate, DateRange } from '../types'
@@ -8,6 +8,8 @@ import type { Whereabouts, WhereaboutsInsert, WhereaboutsUpdate, DateRange } fro
 interface UseWhereaboutsOptions {
   dateRange?: DateRange
   upcomingOnly?: boolean
+  /** Optional initial data to avoid first client fetch. */
+  initialData?: Whereabouts[]
 }
 
 interface UseWhereaboutsReturn {
@@ -26,10 +28,11 @@ export function useWhereabouts(
   playerId: string | null,
   options: UseWhereaboutsOptions = {}
 ): UseWhereaboutsReturn {
-  const { dateRange, upcomingOnly = false } = options
-  const [whereabouts, setWhereabouts] = useState<Whereabouts[]>([])
-  const [loading, setLoading] = useState(true)
+  const { dateRange, upcomingOnly = false, initialData } = options
+  const [whereabouts, setWhereabouts] = useState<Whereabouts[]>(initialData ?? [])
+  const [loading, setLoading] = useState(initialData === undefined)
   const [error, setError] = useState<Error | null>(null)
+  const hasSkippedInitialFetch = useRef(false)
 
   const fetchWhereabouts = useCallback(async () => {
     if (!playerId) {
@@ -55,8 +58,12 @@ export function useWhereabouts(
   }, [playerId, dateRange, upcomingOnly])
 
   useEffect(() => {
+    if (initialData !== undefined && !hasSkippedInitialFetch.current) {
+      hasSkippedInitialFetch.current = true
+      return
+    }
     fetchWhereabouts()
-  }, [fetchWhereabouts])
+  }, [fetchWhereabouts, initialData])
 
   const addWhereabouts = useCallback(async (data: Omit<WhereaboutsInsert, 'player_id'>): Promise<Whereabouts> => {
     if (!playerId) throw new Error('No player ID provided')

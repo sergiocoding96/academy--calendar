@@ -60,10 +60,10 @@ export function Modal({
       />
 
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-center justify-center p-4 relative z-[51]">
         <div
           className={cn(
-            'relative w-full bg-white rounded-xl shadow-xl transform transition-all',
+            'relative w-full bg-white rounded-xl shadow-xl transform transition-all overflow-visible',
             sizeStyles[size]
           )}
           onClick={(e) => e.stopPropagation()}
@@ -93,7 +93,7 @@ export function Modal({
           )}
 
           {/* Content */}
-          <div className="p-6">{children}</div>
+          <div className="p-6 overflow-visible">{children}</div>
         </div>
       </div>
     </div>

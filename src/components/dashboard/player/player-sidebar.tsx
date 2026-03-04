@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Calendar,
   Trophy,
@@ -31,7 +31,13 @@ const navItems = [
 
 export function PlayerSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { profile, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    await signOut()
+    window.location.href = '/login'
+  }
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href
@@ -61,6 +67,7 @@ export function PlayerSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 active
                   ? 'bg-red-50 text-red-600'
@@ -88,7 +95,7 @@ export function PlayerSidebar() {
           </div>
         </div>
         <button
-          onClick={signOut}
+          onClick={handleSignOut}
           className="flex items-center gap-3 px-4 py-3 w-full text-stone-600 hover:bg-stone-50 hover:text-stone-800 rounded-lg transition-colors"
         >
           <LogOut className="w-5 h-5" />

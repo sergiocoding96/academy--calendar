@@ -1,8 +1,11 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserProfile, UserRole } from '@/types/database'
 
-export async function getUser() {
+// cache() deduplicates calls within a single server request, so layout + page
+// don't each make their own getUser() / profile roundtrips.
+export const getUser = cache(async () => {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
 
@@ -11,16 +14,16 @@ export async function getUser() {
   }
 
   return user
-}
+})
 
-export async function getUserProfile(): Promise<UserProfile | null> {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
+  const user = await getUser()
 
-  if (authError || !user) {
+  if (!user) {
     return null
   }
 
+  const supabase = await createClient()
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('*')
@@ -32,7 +35,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   }
 
   return profile
-}
+})
 
 export async function requireAuth() {
   const user = await getUser()

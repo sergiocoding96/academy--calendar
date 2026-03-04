@@ -9,49 +9,62 @@ export default async function PlayerDashboardPage() {
   const supabase = await createClient()
 
   const playerId = profile?.player_id || ''
-
-  // Get player's upcoming sessions
   const today = new Date().toISOString().split('T')[0]
-  const { data: upcomingSessions } = await supabase
-    .from('session_players')
-    .select(`
-      session:sessions(
-        id,
-        date,
-        start_time,
-        end_time,
-        session_type,
-        court:courts(name)
-      )
-    `)
-    .eq('player_id', playerId)
-    .gte('session.date', today)
-    .order('session(date)', { ascending: true })
-    .limit(5) as { data: any[] | null }
 
-  // Get player's active goals count
-  const { count: activeGoalsCount } = await supabase
-    .from('goals')
-    .select('*', { count: 'exact', head: true })
-    .eq('player_id', playerId)
-    .eq('status', 'active')
+  // Fetch in parallel; if tables don't exist or RLS blocks, use empty data so page still loads
+  let upcomingSessions: any[] | null = null
+  let activeGoalsCount: number | null = 0
+  let upcomingTournaments: any[] | null = null
 
-  // Get player's upcoming tournaments
-  const { data: upcomingTournaments } = await supabase
-    .from('tournament_assignments')
-    .select(`
-      tournament:tournaments(
-        id,
-        name,
-        start_date,
-        end_date,
-        location
-      )
-    `)
-    .eq('player_id', playerId)
-    .gte('tournament.start_date', today)
-    .order('tournament(start_date)', { ascending: true })
-    .limit(3) as { data: any[] | null }
+  if (playerId) {
+    const [sessionsRes, goalsRes, tournamentsRes] = await Promise.all([
+      supabase
+        .from('session_players')
+        .select(`
+          session:sessions(
+            id,
+            date,
+            start_time,
+            end_time,
+            session_type,
+            court:courts(name)
+          )
+        `)
+        .eq('player_id', playerId)
+        .gte('session.date', today)
+        .order('session(date)', { ascending: true })
+        .limit(5)
+        .then((r) => r.data as any[] | null)
+        .catch(() => null),
+      supabase
+        .from('goals')
+        .select('*', { count: 'exact', head: true })
+        .eq('player_id', playerId)
+        .eq('status', 'active')
+        .then((r) => r.count ?? 0)
+        .catch(() => 0),
+      supabase
+        .from('tournament_assignments')
+        .select(`
+          tournament:tournaments(
+            id,
+            name,
+            start_date,
+            end_date,
+            location
+          )
+        `)
+        .eq('player_id', playerId)
+        .gte('tournament.start_date', today)
+        .order('tournament(start_date)', { ascending: true })
+        .limit(3)
+        .then((r) => r.data as any[] | null)
+        .catch(() => null),
+    ])
+    upcomingSessions = sessionsRes
+    activeGoalsCount = goalsRes
+    upcomingTournaments = tournamentsRes
+  }
 
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':')

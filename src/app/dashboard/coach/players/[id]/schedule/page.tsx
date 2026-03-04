@@ -45,18 +45,21 @@ export default async function CoachPlayerSchedulePage({
 
   const ratingsMap = new Map(ratings?.map(r => [r.session_id, r]) || [])
 
+  // Normalize nested session (PostgREST can return object or single-element array)
+  const sessionList = (sessionPlayers ?? []).map((sp: any) => {
+    const session = sp.session == null ? null : Array.isArray(sp.session) ? sp.session[0] : sp.session
+    return session ? { ...session, rating: ratingsMap.get(session.id) } : null
+  }).filter(Boolean) as any[]
+
   // Group sessions by date
   const groupedSessions: { [key: string]: any[] } = {}
-  sessionPlayers?.forEach((sp: any) => {
-    if (!sp.session) return
-    const date = sp.session.date
+  sessionList.forEach((session: any) => {
+    const date = session.date
+    if (!date) return
     if (!groupedSessions[date]) {
       groupedSessions[date] = []
     }
-    groupedSessions[date].push({
-      ...sp.session,
-      rating: ratingsMap.get(sp.session.id)
-    })
+    groupedSessions[date].push(session)
   })
 
   const sortedDates = Object.keys(groupedSessions).sort().reverse()

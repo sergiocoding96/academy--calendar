@@ -12,6 +12,8 @@ import { PlayerQuickActions } from './PlayerQuickActions'
 
 interface PlayerProfileProps {
   playerId: string
+  /** Optional pre-fetched player (with details) to avoid initial loading spinner. */
+  initialPlayer?: PlayerWithDetails | null
   onBack?: () => void
   onEdit?: () => void
   className?: string
@@ -245,11 +247,15 @@ function TabContent({ tab, player }: { tab: PlayerTabId; player: any }) {
 
 export function PlayerProfile({
   playerId,
+  initialPlayer,
   onBack,
   onEdit,
   className,
 }: PlayerProfileProps) {
-  const { player, loading, error } = usePlayer(playerId, { withDetails: true })
+  const { player, loading, error } = usePlayer(playerId, {
+    withDetails: true,
+    initialData: initialPlayer,
+  })
   const { activeTab, setActiveTab } = usePlayerTabs('overview')
   const [showAddTraining, setShowAddTraining] = useState(false)
   const [showAddInjury, setShowAddInjury] = useState(false)

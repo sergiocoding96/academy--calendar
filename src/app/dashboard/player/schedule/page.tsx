@@ -2,6 +2,7 @@ import { getUserProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { Calendar, Clock, MapPin, User } from 'lucide-react'
 import Link from 'next/link'
+import { MarkAbsentButton } from '@/components/schedule/mark-absent-button'
 
 export default async function PlayerSchedulePage() {
   const profile = await getUserProfile()
@@ -9,33 +10,48 @@ export default async function PlayerSchedulePage() {
 
   const playerId = profile?.player_id || ''
 
-  // Get all sessions for this player
-  const { data: sessions } = await supabase
-    .from('session_players')
-    .select(`
-      session:sessions(
-        id,
-        date,
-        start_time,
-        end_time,
-        session_type,
-        notes,
-        court:courts(name),
-        coach:coaches(name)
-      )
-    `)
-    .eq('player_id', playerId)
-    .order('session(date)', { ascending: true }) as { data: any[] | null }
+  // Get all sessions for this player with session_players status (for absence)
+  const { data: rows } = playerId
+    ? await supabase
+        .from('session_players')
+        .select(`
+          id,
+          status,
+          absent_reason,
+          session:sessions(
+            id,
+            date,
+            start_time,
+            end_time,
+            session_type,
+            notes,
+            court:courts(name),
+            coach:coaches(name)
+          )
+        `)
+        .eq('player_id', playerId)
+        .order('session(date)', { ascending: true })
+    : { data: null }
 
-  // Group sessions by date
-  const groupedSessions: { [key: string]: any[] } = {}
-  sessions?.forEach((item: any) => {
-    if (item.session) {
+  // Normalize nested session (PostgREST can return object or single-element array)
+  const normalizedRows = (rows as any[] | null)?.map((item: any) => {
+    const session = item.session == null ? null : Array.isArray(item.session) ? item.session[0] : item.session
+    return { ...item, session }
+  })
+
+  // Group by date; each item has { session, status, absent_reason }
+  const groupedSessions: { [key: string]: { session: any; status: string; absent_reason: string | null }[] } = {}
+  normalizedRows?.forEach((item: any) => {
+    if (item.session?.date) {
       const date = item.session.date
       if (!groupedSessions[date]) {
         groupedSessions[date] = []
       }
-      groupedSessions[date].push(item.session)
+      groupedSessions[date].push({
+        session: item.session,
+        status: item.status ?? 'confirmed',
+        absent_reason: item.absent_reason ?? null,
+      })
     }
   })
 
@@ -88,7 +104,23 @@ export default async function PlayerSchedulePage() {
       </div>
 
       {/* Sessions by Date */}
-      {sortedDates.length > 0 ? (
+      {!playerId ? (
+        <div className="bg-white rounded-xl border border-stone-200 p-12 text-center">
+          <Calendar className="w-16 h-16 mx-auto mb-4 text-stone-300" />
+          <h3 className="text-lg font-medium text-stone-800 mb-2">No player linked to your account</h3>
+          <p className="text-stone-500 mb-4 max-w-md mx-auto">
+            Your schedule will appear here once your coach links your account to a player profile. If you&apos;re a coach
+            viewing this page, go to <strong>Players</strong> → click a player → <strong>Schedule</strong> to see that
+            player&apos;s sessions.
+          </p>
+          <Link
+            href="/dashboard/coach/players"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200 font-medium text-sm"
+          >
+            Go to Players
+          </Link>
+        </div>
+      ) : sortedDates.length > 0 ? (
         <div className="space-y-6">
           {sortedDates.map((date) => (
             <div key={date} className="bg-white rounded-xl border border-stone-200 overflow-hidden">
@@ -109,55 +141,79 @@ export default async function PlayerSchedulePage() {
 
               {/* Sessions */}
               <div className="divide-y divide-stone-100">
-                {groupedSessions[date].map((session: any, index: number) => (
-                  <Link
-                    key={index}
-                    href={`/dashboard/player/sessions/${session.id}`}
-                    className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
-                  >
-                    {/* Time */}
-                    <div className="w-24 text-center">
-                      <p className="font-medium text-stone-800">{formatTime(session.start_time)}</p>
-                      <p className="text-xs text-stone-400">{formatTime(session.end_time)}</p>
-                    </div>
-
-                    {/* Session Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getSessionTypeColor(session.session_type)}`}>
-                          {session.session_type?.replace('_', ' ') || 'Training'}
-                        </span>
+                {groupedSessions[date].map((item: { session: any; status: string; absent_reason: string | null }, index: number) => {
+                  const session = item.session
+                  const isAbsent = item.status === 'absent'
+                  const isPastSession = isPast(session.date)
+                  const sessionLabel = `${formatTime(session.start_time)} ${session.session_type ?? 'Training'}`
+                  return (
+                    <div
+                      key={session.id}
+                      className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
+                    >
+                      {/* Time */}
+                      <div className="w-24 text-center">
+                        <p className="font-medium text-stone-800">{formatTime(session.start_time)}</p>
+                        <p className="text-xs text-stone-400">{formatTime(session.end_time)}</p>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-stone-500">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {session.court?.name || 'TBD'}
-                        </span>
-                        {session.coach && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            {session.coach.name}
+
+                      {/* Session Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getSessionTypeColor(session.session_type)}`}>
+                            {session.session_type?.replace('_', ' ') || 'Training'}
                           </span>
-                        )}
+                          {isAbsent && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              Absent
+                            </span>
+                          )}
+                          {isAbsent && item.absent_reason && (
+                            <span className="text-xs text-stone-500 truncate" title={item.absent_reason}>
+                              — {item.absent_reason}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-stone-500">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            {session.court?.name || 'TBD'}
+                          </span>
+                          {session.coach && (
+                            <span className="flex items-center gap-1">
+                              <User className="w-4 h-4 shrink-0" />
+                              {session.coach.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Duration */}
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-stone-400">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-sm">
-                          {(() => {
-                            const [startH, startM] = session.start_time.split(':').map(Number)
-                            const [endH, endM] = session.end_time.split(':').map(Number)
-                            const minutes = (endH * 60 + endM) - (startH * 60 + startM)
-                            return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
-                          })()}
-                        </span>
+                      {/* Duration + Actions */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1 text-stone-400">
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm">
+                            {(() => {
+                              const [startH, startM] = session.start_time.split(':').map(Number)
+                              const [endH, endM] = session.end_time.split(':').map(Number)
+                              const minutes = (endH * 60 + endM) - (startH * 60 + startM)
+                              return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
+                            })()}
+                          </span>
+                        </div>
+                        {!isAbsent && !isPastSession && (
+                          <MarkAbsentButton sessionId={session.id} sessionLabel={sessionLabel} />
+                        )}
+                        <Link
+                          href={`/dashboard/player/sessions/${session.id}`}
+                          className="text-sm text-red-600 hover:text-red-700 font-medium"
+                        >
+                          View
+                        </Link>
                       </div>
                     </div>
-                  </Link>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}
@@ -166,7 +222,10 @@ export default async function PlayerSchedulePage() {
         <div className="bg-white rounded-xl border border-stone-200 p-12 text-center">
           <Calendar className="w-16 h-16 mx-auto mb-4 text-stone-300" />
           <h3 className="text-lg font-medium text-stone-800 mb-2">No sessions scheduled</h3>
-          <p className="text-stone-500">Your training schedule will appear here once sessions are booked.</p>
+          <p className="text-stone-500">
+            Your training schedule will appear here once your coach assigns you to sessions. Coaches: assign players
+            from <strong>Schedule</strong> → + Player on a session, then approve the request.
+          </p>
         </div>
       )}
     </div>

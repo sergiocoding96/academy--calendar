@@ -63,8 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!error && data) {
         setProfile(data)
       }
-    } catch (err) {
-      console.error('Error fetching profile:', err)
+    } catch {
+      // Profile fetch failed; leave profile null
     }
   }
 
@@ -111,27 +111,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Get initial session
-    const getSession = async () => {
+    // Use getSession() for initial load (faster, can use cache)
+    const initSession = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const currentUser = session?.user ?? null
         setUser(currentUser)
 
         if (currentUser) {
           await fetchProfile(currentUser.id)
         }
-      } catch (err) {
-        console.error('Error getting session:', err)
+      } catch {
+        // Session check failed; listener will update when auth state is known
       } finally {
         setLoading(false)
       }
     }
 
-    getSession()
+    initSession()
 
-    // Listen for auth changes
+    // Listen for auth changes (e.g. sign in/out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (isGuest) return // Ignore auth changes when in guest mode
+        if (isGuest) return
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
