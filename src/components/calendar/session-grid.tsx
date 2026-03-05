@@ -227,6 +227,15 @@ export function SessionGrid() {
     setCurrentDate(prev => addDays(prev, direction === 'next' ? 7 : -7))
   }
 
+  // Build a dynamic coach legend from the sessions we actually have
+  const legendCoaches = Array.from(
+    new Set(
+      sessions
+        .map((session) => session.coach?.name)
+        .filter((name): name is string => Boolean(name))
+    )
+  ).slice(0, 8)
+
   return (
     <div className="bg-white rounded-2xl border border-stone-200 shadow-lg overflow-hidden">
       {/* Header with Week Navigation */}
@@ -373,12 +382,18 @@ export function SessionGrid() {
       <div className="p-4 bg-stone-50 border-t border-stone-200">
         <div className="flex items-center gap-4 flex-wrap">
           <span className="text-xs font-medium text-stone-500">Coaches:</span>
-          {['Tom P', 'Andris', 'Tomy', 'Sergio', 'DK', 'Joe D'].map((coach) => (
-            <div key={coach} className="flex items-center gap-1">
-              <div className={cn('w-3 h-3 rounded', getCoachColor(coach))} />
-              <span className="text-xs text-stone-600">{coach}</span>
-            </div>
-          ))}
+          {legendCoaches.length === 0 ? (
+            <span className="text-xs text-stone-400">
+              No sessions loaded yet — legend will appear once sessions are available.
+            </span>
+          ) : (
+            legendCoaches.map((coach) => (
+              <div key={coach} className="flex items-center gap-1">
+                <div className={cn('w-3 h-3 rounded', getCoachColor(coach))} />
+                <span className="text-xs text-stone-600">{coach}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
