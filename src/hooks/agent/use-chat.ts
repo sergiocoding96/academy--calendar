@@ -24,12 +24,25 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const [conversationId, setConversationId] = useState<string | null>(
     options.conversationId || null
   )
-  // Store onError in a ref so it doesn't invalidate sendMessage when the caller re-renders
+  // Use refs to avoid stale closures in sendMessage
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+  const isLoadingRef = useRef(isLoading)
+  isLoadingRef.current = isLoading
+  const conversationIdRef = useRef(conversationId)
+  conversationIdRef.current = conversationId
   const onErrorRef = useRef(options.onError)
+  onErrorRef.current = options.onError
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!content.trim() || isLoading) return
+      if (!content.trim() || isLoadingRef.current) return
+
+      // Abort any in-flight request
+      abortControllerRef.current?.abort()
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
 
       setError(null)
       setIsLoading(true)
@@ -54,8 +67,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       setMessages((prev) => [...prev, userMessage, assistantPlaceholder])
 
       try {
-        // Build history for context (exclude the current placeholder)
-        const history = messages.map((m) => ({
+        // Build history from ref to avoid stale closure
+        const history = messagesRef.current.map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         }))
@@ -67,9 +80,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           },
           body: JSON.stringify({
             message: content.trim(),
-            conversationId,
+            conversationId: conversationIdRef.current,
             history,
           }),
+          signal: abortController.signal,
         })
 
         if (!response.ok) {
@@ -97,6 +111,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           setConversationId(data.conversationId)
         }
       } catch (err) {
+        // Don't treat abort as an error
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return
+        }
+
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to send message'
         setError(errorMessage)
@@ -118,10 +137,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         setIsLoading(false)
       }
     },
-    [messages, conversationId, isLoading]
+    [] // No dependencies — all state accessed via refs
   )
 
   const clearMessages = useCallback(() => {
+    abortControllerRef.current?.abort()
     setMessages([])
     setConversationId(null)
     setError(null)

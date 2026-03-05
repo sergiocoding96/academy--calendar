@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, MapPin, Users, Star } from 'lucide-react'
 import { format, startOfWeek, addWeeks, getWeek, getYear } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -65,26 +65,47 @@ const categories = ['U12/U14', 'U16/U18', 'Adults']
 export function TournamentCalendar() {
   const { isGuest } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedWeek, setSelectedWeek] = useState(getWeek(new Date()))
   const [selectedCategory, setSelectedCategory] = useState('U16/U18')
   const [tournaments, setTournaments] = useState<TournamentWithDetails[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
 
   // Generate 12 weeks for display
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
-  const weeks = Array.from({ length: 12 }, (_, i) => {
+  const weeks = useMemo(() => Array.from({ length: 12 }, (_, i) => {
     const date = addWeeks(weekStart, i - 4)
     return {
       weekNumber: getWeek(date),
+      year: getYear(date),
       startDate: date,
     }
+  }), [weekStart.getTime()])
+
+  // Selected week defaults to current week; update when navigating
+  const [selectedWeekKey, setSelectedWeekKey] = useState(() => {
+    const now = new Date()
+    return `${getYear(now)}-${getWeek(now)}`
   })
+
+  const selectedWeekData = useMemo(
+    () => weeks.find((w) => `${w.year}-${w.weekNumber}` === selectedWeekKey),
+    [weeks, selectedWeekKey]
+  )
+
+  // If the selected week is not visible, snap to the first visible week
+  useEffect(() => {
+    if (!selectedWeekData && weeks.length > 0) {
+      const midWeek = weeks[4] // Center of visible range
+      setSelectedWeekKey(`${midWeek.year}-${midWeek.weekNumber}`)
+    }
+  }, [selectedWeekData, weeks])
 
   // Fetch tournaments from Supabase or use mock data for guest
   useEffect(() => {
     async function fetchTournaments() {
       setLoading(true)
+      setFetchError(null)
 
       // Use mock data for guest users
       if (isGuest) {
@@ -119,6 +140,7 @@ export function TournamentCalendar() {
 
       if (error) {
         console.error('Error fetching tournaments:', error)
+        setFetchError('Failed to load tournaments. Please try refreshing.')
       } else {
         setTournaments(data || [])
       }
@@ -129,23 +151,23 @@ export function TournamentCalendar() {
     fetchTournaments()
   }, [isGuest])
 
-  // Filter tournaments by selected week and category
-  // Also compare year to prevent tournaments from prior seasons appearing in Week 1 etc.
-  const selectedWeekData = weeks.find((w) => w.weekNumber === selectedWeek)
-  const selectedYear = selectedWeekData ? getYear(selectedWeekData.startDate) : getYear(currentDate)
+  // Parse selected week/year from key
+  const selectedWeekNumber = selectedWeekData?.weekNumber ?? 0
+  const selectedYear = selectedWeekData?.year ?? getYear(currentDate)
 
-  const filteredTournaments = tournaments.filter((t) => {
+  // Filter tournaments by selected week and category
+  const filteredTournaments = useMemo(() => tournaments.filter((t) => {
     const tournamentDate = new Date(t.start_date)
     const tournamentWeek = getWeek(tournamentDate)
     const tournamentYear = getYear(tournamentDate)
-    const matchesWeek = tournamentWeek === selectedWeek && tournamentYear === selectedYear
+    const matchesWeek = tournamentWeek === selectedWeekNumber && tournamentYear === selectedYear
     const matchesCategory =
       selectedCategory === 'Adults'
         ? t.category === 'Adults'
         : t.category?.includes(selectedCategory.split('/')[0]) ||
           t.category?.includes(selectedCategory.split('/')[1])
     return matchesWeek && matchesCategory
-  })
+  }), [tournaments, selectedWeekNumber, selectedYear, selectedCategory])
 
   const navigateWeeks = (direction: 'prev' | 'next') => {
     setCurrentDate((prev) => addWeeks(prev, direction === 'next' ? 4 : -4))
@@ -185,15 +207,17 @@ export function TournamentCalendar() {
 
             <div className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide py-2">
               {weeks.map((week) => {
-                const isSelected = selectedWeek === week.weekNumber
-                const hasTournaments = tournaments.some(
-                  (t) => getWeek(new Date(t.start_date)) === week.weekNumber
-                )
+                const weekKey = `${week.year}-${week.weekNumber}`
+                const isSelected = selectedWeekKey === weekKey
+                const hasTournaments = tournaments.some((t) => {
+                  const td = new Date(t.start_date)
+                  return getWeek(td) === week.weekNumber && getYear(td) === week.year
+                })
 
                 return (
                   <button
-                    key={week.weekNumber}
-                    onClick={() => setSelectedWeek(week.weekNumber)}
+                    key={weekKey}
+                    onClick={() => setSelectedWeekKey(weekKey)}
                     className={cn(
                       'flex-shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center transition-all duration-300',
                       isSelected
@@ -226,7 +250,7 @@ export function TournamentCalendar() {
           className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-700 to-red-600"
           style={{ fontFamily: "'Bebas Neue', 'Impact', sans-serif", letterSpacing: '0.1em' }}
         >
-          WEEK {selectedWeek}
+          WEEK {selectedWeekNumber}
         </h3>
         {selectedWeekData && (
           <p className="text-red-500 font-medium">
@@ -242,8 +266,10 @@ export function TournamentCalendar() {
           {categories.map((cat) => {
             const isActive = selectedCategory === cat
             const count = tournaments.filter((t) => {
-              const tournamentWeek = getWeek(new Date(t.start_date))
-              const matchesWeek = tournamentWeek === selectedWeek
+              const td = new Date(t.start_date)
+              const tournamentWeek = getWeek(td)
+              const tournamentYear = getYear(td)
+              const matchesWeek = tournamentWeek === selectedWeekNumber && tournamentYear === selectedYear
               const matchesCategory =
                 cat === 'Adults'
                   ? t.category === 'Adults'
@@ -284,6 +310,11 @@ export function TournamentCalendar() {
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="animate-spin w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full" />
+          </div>
+        ) : fetchError ? (
+          <div className="text-center py-16">
+            <p className="text-red-500 font-medium">{fetchError}</p>
+            <p className="text-stone-400 text-sm mt-1">Please try refreshing the page</p>
           </div>
         ) : filteredTournaments.length === 0 ? (
           <div className="text-center py-16">

@@ -160,7 +160,7 @@ export default async function PlayerDashboardPage() {
             <div className="space-y-3">
               {upcomingSessions.map((item: any) => (
                 <div
-                  key={item.session?.id ?? Math.random()}
+                  key={item.session?.id ?? `session-${crypto.randomUUID()}`}
                   className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
                 >
                   <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">

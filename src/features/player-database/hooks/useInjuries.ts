@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getPlayerInjuries, getActiveInjuries } from '../lib/queries'
 import { createInjury, updateInjury, clearInjury, deleteInjury } from '../lib/mutations'
 import type { Injury, InjuryInsert, InjuryUpdate } from '../types'
@@ -105,8 +105,8 @@ export function useInjuries(
     }
   }, [])
 
-  // Derived state
-  const activeInjuries = injuries.filter(injury => injury.status !== 'cleared')
+  // Derived state (memoized to prevent unnecessary re-renders)
+  const activeInjuries = useMemo(() => injuries.filter(injury => injury.status !== 'cleared'), [injuries])
   const hasActiveInjury = activeInjuries.length > 0
 
   return {

@@ -8,9 +8,16 @@ interface CoachDashboardWrapperProps {
 }
 
 export function CoachDashboardWrapper({ children }: CoachDashboardWrapperProps) {
-  const { isGuest, loading } = useAuth()
+  const { isGuest, loading, profile } = useAuth()
 
-  if (loading) {
+  // Guest check first — show guest view immediately without waiting for auth
+  if (isGuest) {
+    return <GuestCoachDashboard />
+  }
+
+  // Only show skeleton on first load when we don't have profile yet.
+  // If server already rendered content for an authenticated user, show it immediately.
+  if (loading && !profile) {
     return (
       <div className="p-8">
         <div className="animate-pulse">
@@ -28,10 +35,6 @@ export function CoachDashboardWrapper({ children }: CoachDashboardWrapperProps) 
         </div>
       </div>
     )
-  }
-
-  if (isGuest) {
-    return <GuestCoachDashboard />
   }
 
   return <>{children}</>

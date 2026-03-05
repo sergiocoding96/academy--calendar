@@ -125,7 +125,7 @@ export default async function CoachSessionsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-stone-800 capitalize">
-                            {session.session_type?.replace('_', ' ') || 'Training'}
+                            {session.session_type?.replaceAll('_', ' ') || 'Training'}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-stone-500">

@@ -61,7 +61,8 @@ export function usePlayer(
       return
     }
     fetchPlayer()
-  }, [fetchPlayer, initialData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchPlayer])
 
   const update = useCallback(async (data: PlayerUpdate) => {
     if (!playerId) return

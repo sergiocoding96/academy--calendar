@@ -10,37 +10,40 @@ interface DashboardRedirectProps {
   } | null
 }
 
+function resolveTarget(role: string | undefined): string {
+  if (role === 'coach' || role === 'admin') return '/dashboard/coach'
+  if (role === 'player') return '/dashboard/player'
+  // Default to coach dashboard for any unrecognized role
+  return '/dashboard/coach'
+}
+
 export function DashboardRedirect({ serverProfile }: DashboardRedirectProps) {
   const router = useRouter()
   const { isGuest, profile, loading } = useAuth()
   const hasRedirected = useRef(false)
 
   useEffect(() => {
-    // Avoid double redirect
     if (hasRedirected.current) return
 
     let target: string | null = null
 
-    // Guest: redirect immediately
     if (isGuest) {
       target = '/dashboard/coach'
-    }
-    // Server already gave us role: redirect without waiting for client profile
-    else if (serverProfile?.role === 'coach' || serverProfile?.role === 'admin') {
-      target = '/dashboard/coach'
-    } else if (serverProfile?.role === 'player') {
-      target = '/dashboard/player'
-    }
-    // No server profile: wait for client auth, then redirect or send to login
-    else if (!loading) {
-      if (!profile) target = '/login'
+    } else if (serverProfile?.role) {
+      target = resolveTarget(serverProfile.role)
+    } else if (!loading) {
+      if (profile?.role) {
+        target = resolveTarget(profile.role)
+      } else {
+        target = '/login'
+      }
     }
 
     if (target) {
       hasRedirected.current = true
       router.replace(target)
     }
-  }, [isGuest, serverProfile?.role, profile, loading, router])
+  }, [isGuest, serverProfile, profile, loading, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-50">

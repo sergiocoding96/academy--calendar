@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { getPlayerWhereabouts, getUpcomingWhereabouts } from '../lib/queries'
 import { createWhereabouts, updateWhereabouts, deleteWhereabouts } from '../lib/mutations'
 import type { Whereabouts, WhereaboutsInsert, WhereaboutsUpdate, DateRange } from '../types'
@@ -34,6 +34,9 @@ export function useWhereabouts(
   const [error, setError] = useState<Error | null>(null)
   const hasSkippedInitialFetch = useRef(false)
 
+  // Serialize dateRange to avoid infinite loops from object reference changes
+  const dateRangeKey = dateRange ? `${dateRange.start?.getTime() ?? ''}_${dateRange.end?.getTime() ?? ''}` : ''
+
   const fetchWhereabouts = useCallback(async () => {
     if (!playerId) {
       setWhereabouts([])
@@ -55,7 +58,8 @@ export function useWhereabouts(
     } finally {
       setLoading(false)
     }
-  }, [playerId, dateRange, upcomingOnly])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId, dateRangeKey, upcomingOnly])
 
   useEffect(() => {
     if (initialData !== undefined && !hasSkippedInitialFetch.current) {
@@ -63,7 +67,8 @@ export function useWhereabouts(
       return
     }
     fetchWhereabouts()
-  }, [fetchWhereabouts, initialData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchWhereabouts])
 
   const addWhereabouts = useCallback(async (data: Omit<WhereaboutsInsert, 'player_id'>): Promise<Whereabouts> => {
     if (!playerId) throw new Error('No player ID provided')
@@ -104,9 +109,11 @@ export function useWhereabouts(
     return whereabouts.find(w => w.start_date <= date && w.end_date >= date)
   }, [whereabouts])
 
-  // Derived state - upcoming whereabouts
-  const today = new Date().toISOString().split('T')[0]
-  const upcomingWhereabouts = whereabouts.filter(w => w.end_date >= today)
+  // Derived state - upcoming whereabouts (memoized to prevent unnecessary re-renders)
+  const upcomingWhereabouts = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return whereabouts.filter(w => w.end_date >= today)
+  }, [whereabouts])
 
   return {
     whereabouts,

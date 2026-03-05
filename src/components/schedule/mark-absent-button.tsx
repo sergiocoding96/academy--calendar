@@ -41,6 +41,8 @@ export function MarkAbsentButton({ sessionId, disabled, sessionLabel }: Props) {
       setOpen(false)
       setReason('')
       router.refresh()
+    } catch {
+      setError('Network error. Please check your connection and try again.')
     } finally {
       setSubmitting(false)
     }
@@ -92,7 +94,7 @@ export function MarkAbsentButton({ sessionId, disabled, sessionLabel }: Props) {
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); setReason(''); setError(null) }}
               disabled={submitting}
               className="px-4 py-2 text-stone-600 hover:text-stone-800 disabled:opacity-50"
             >

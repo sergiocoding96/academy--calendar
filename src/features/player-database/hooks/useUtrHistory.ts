@@ -37,6 +37,9 @@ export function useUtrHistory(
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
+  // Serialize dateRange to avoid infinite loops from object reference changes
+  const dateRangeKey = dateRange ? `${dateRange.start?.getTime() ?? ''}_${dateRange.end?.getTime() ?? ''}` : ''
+
   const fetchUtrHistory = useCallback(async () => {
     if (!playerId) {
       setUtrHistory([])
@@ -56,7 +59,8 @@ export function useUtrHistory(
     } finally {
       setLoading(false)
     }
-  }, [playerId, dateRange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId, dateRangeKey])
 
   useEffect(() => {
     fetchUtrHistory()

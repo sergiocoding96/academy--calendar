@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { getPlayerTrainingLoads } from '../lib/queries'
 import { createTrainingLoad, updateTrainingLoad, deleteTrainingLoad } from '../lib/mutations'
 import type { TrainingLoad, TrainingLoadInsert, TrainingLoadUpdate, DateRange } from '../types'
@@ -33,6 +33,9 @@ export function useTrainingLoads(
   const [error, setError] = useState<Error | null>(null)
   const hasSkippedInitialFetch = useRef(false)
 
+  // Serialize dateRange to avoid infinite loops from object reference changes
+  const dateRangeKey = dateRange ? `${dateRange.start?.getTime() ?? ''}_${dateRange.end?.getTime() ?? ''}` : ''
+
   const fetchLoads = useCallback(async () => {
     if (!playerId) {
       setTrainingLoads([])
@@ -52,7 +55,8 @@ export function useTrainingLoads(
     } finally {
       setLoading(false)
     }
-  }, [playerId, dateRange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId, dateRangeKey])
 
   useEffect(() => {
     if (initialData !== undefined && !hasSkippedInitialFetch.current) {
@@ -60,7 +64,8 @@ export function useTrainingLoads(
       return
     }
     fetchLoads()
-  }, [fetchLoads, initialData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchLoads])
 
   const addLoad = useCallback(async (data: Omit<TrainingLoadInsert, 'player_id'>): Promise<TrainingLoad> => {
     if (!playerId) throw new Error('No player ID provided')
@@ -94,12 +99,12 @@ export function useTrainingLoads(
     }
   }, [])
 
-  // Calculate stats
-  const averageRpe = trainingLoads.length > 0
+  // Calculate stats (memoized to prevent recalculation every render)
+  const averageRpe = useMemo(() => trainingLoads.length > 0
     ? trainingLoads.reduce((sum, load) => sum + (load.rpe || 0), 0) / trainingLoads.length
-    : null
+    : null, [trainingLoads])
 
-  const totalMinutes = trainingLoads.reduce((sum, load) => sum + (load.duration_minutes || 0), 0)
+  const totalMinutes = useMemo(() => trainingLoads.reduce((sum, load) => sum + (load.duration_minutes || 0), 0), [trainingLoads])
 
   return {
     trainingLoads,

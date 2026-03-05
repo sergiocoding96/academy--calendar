@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { UserProfile } from '@/types/database'
@@ -27,15 +27,7 @@ interface AuthContextType {
   signInAsGuest: () => void
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  loading: true,
-  isGuest: false,
-  signOut: async () => {},
-  refreshProfile: async () => {},
-  signInAsGuest: () => {},
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function useAuth() {
   const context = useContext(AuthContext)
@@ -52,9 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isGuest, setIsGuest] = useState(false)
   // Ref keeps the auth-state-change listener in sync without re-registering it
   const isGuestRef = useRef(false)
-  const supabase = createClient()
+  // Stable Supabase client — created once, not on every render
+  const supabaseRef = useRef(createClient())
+  const supabase = supabaseRef.current
+  // Track whether initial session has been resolved to avoid double-fetch
+  const initialSessionResolved = useRef(false)
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -68,15 +64,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Profile fetch failed; leave profile null
     }
-  }
+  }, [supabase])
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user && !isGuest) {
       await fetchProfile(user.id)
     }
-  }
+  }, [user, isGuest, fetchProfile])
 
-  const signInAsGuest = () => {
+  const signInAsGuest = useCallback(() => {
     isGuestRef.current = true
     setIsGuest(true)
     setProfile(GUEST_PROFILE)
@@ -87,9 +83,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('isGuest', 'true')
       document.cookie = 'isGuest=true; path=/; max-age=86400' // 24 hours
     }
-  }
+  }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     if (isGuestRef.current) {
       isGuestRef.current = false
       setIsGuest(false)
@@ -98,11 +94,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = 'isGuest=; path=/; max-age=0' // Clear cookie
       }
     } else {
-      await supabase.auth.signOut()
+      try {
+        await supabase.auth.signOut()
+      } catch {
+        // Sign-out API call failed; clear local state anyway
+      }
     }
     setUser(null)
     setProfile(null)
-  }
+  }, [supabase])
 
   useEffect(() => {
     // Check for guest session first
@@ -115,7 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Get initial session
-    // Use getSession() for initial load (faster, can use cache)
     const initSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -128,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // Session check failed; listener will update when auth state is known
       } finally {
+        initialSessionResolved.current = true
         setLoading(false)
       }
     }
@@ -135,10 +135,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initSession()
 
     // Listen for auth changes (e.g. sign in/out, token refresh)
-    // Use isGuestRef (not isGuest state) to avoid stale closure
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
+        // Skip INITIAL_SESSION event — already handled by initSession above
+        if (event === 'INITIAL_SESSION' && !initialSessionResolved.current) return
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -156,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getPlayerNotes } from '../lib/queries'
 import { createNote, updateNote, deleteNote, toggleNoteAiContext } from '../lib/mutations'
 import type { PlayerNote, PlayerNoteInsert, PlayerNoteUpdate } from '../types'
@@ -100,8 +100,8 @@ export function usePlayerNotes(
     }
   }, [])
 
-  // Derived state
-  const aiContextNotes = notes.filter(note => note.is_ai_context)
+  // Derived state (memoized to prevent unnecessary re-renders)
+  const aiContextNotes = useMemo(() => notes.filter(note => note.is_ai_context), [notes])
 
   return {
     notes,

@@ -91,12 +91,13 @@ export function AttendanceClient({ initialPlayers }: AttendanceClientProps) {
   }
 
   const handleMarkBulk = async (entries: { playerId: string; status: AttendanceStatus }[], date: string) => {
-    try {
-      for (const entry of entries) {
-        await handleMarkAttendance(entry.playerId, entry.status, date)
-      }
-    } catch (err) {
-      console.error('Failed to mark bulk attendance:', err)
+    // Process all entries in parallel instead of sequentially
+    const results = await Promise.allSettled(
+      entries.map((entry) => handleMarkAttendance(entry.playerId, entry.status, date))
+    )
+    const failures = results.filter((r) => r.status === 'rejected')
+    if (failures.length > 0) {
+      console.error(`Failed to mark ${failures.length}/${entries.length} attendance entries`)
     }
   }
 
