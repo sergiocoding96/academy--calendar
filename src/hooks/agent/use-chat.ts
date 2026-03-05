@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { ChatMessage } from '@/types/agent'
 
 interface UseChatOptions {
@@ -24,6 +24,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const [conversationId, setConversationId] = useState<string | null>(
     options.conversationId || null
   )
+  // Store onError in a ref so it doesn't invalidate sendMessage when the caller re-renders
+  const onErrorRef = useRef(options.onError)
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -98,7 +100,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to send message'
         setError(errorMessage)
-        options.onError?.(err instanceof Error ? err : new Error(errorMessage))
+        onErrorRef.current?.(err instanceof Error ? err : new Error(errorMessage))
 
         // Update the assistant message with error
         setMessages((prev) =>
@@ -116,7 +118,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         setIsLoading(false)
       }
     },
-    [messages, conversationId, isLoading, options]
+    [messages, conversationId, isLoading]
   )
 
   const clearMessages = useCallback(() => {

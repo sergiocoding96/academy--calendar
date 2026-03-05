@@ -4,14 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, X, Edit3, Calendar, Clock } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
-
-function formatTime(time: string) {
-  const [h, m] = time.split(':')
-  const hour = parseInt(h, 10)
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const h12 = hour % 12 || 12
-  return `${h12}:${m} ${ampm}`
-}
+import { formatTime } from '@/lib/utils'
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -45,6 +38,8 @@ export function ApprovalQueueClient({ initialPending }: Props) {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [modifyOpen, setModifyOpen] = useState(false)
   const [modifyId, setModifyId] = useState<string | null>(null)
+  const [modifyPayloadText, setModifyPayloadText] = useState('')
+  const [modifyPayloadError, setModifyPayloadError] = useState<string | null>(null)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [rejectId, setRejectId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -125,7 +120,10 @@ export function ApprovalQueueClient({ initialPending }: Props) {
   }
 
   const openModify = (id: string) => {
+    const req = pending.find((r) => r.id === id)
     setModifyId(id)
+    setModifyPayloadText(req?.proposed_payload ? JSON.stringify(req.proposed_payload, null, 2) : '{}')
+    setModifyPayloadError(null)
     setModifyOpen(true)
   }
 
@@ -233,27 +231,42 @@ export function ApprovalQueueClient({ initialPending }: Props) {
         </div>
       </Modal>
 
-      <Modal isOpen={modifyOpen} onClose={() => setModifyId(null)} title="Modify & approve">
+      <Modal isOpen={modifyOpen} onClose={() => { setModifyOpen(false); setModifyId(null) }} title="Modify & Approve">
         <div className="space-y-4">
           <p className="text-sm text-stone-600">
-            Modify the change payload if needed, then approve. For move_time you can edit start_time/end_time; for change_court edit court_id.
+            Edit the change payload below, then click Approve. For <code className="bg-stone-100 px-1 rounded">move_time</code> edit <code className="bg-stone-100 px-1 rounded">start_time</code> / <code className="bg-stone-100 px-1 rounded">end_time</code>; for <code className="bg-stone-100 px-1 rounded">change_court</code> edit <code className="bg-stone-100 px-1 rounded">court_id</code>.
           </p>
+          <textarea
+            className="w-full h-40 font-mono text-sm border border-stone-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500 resize-y"
+            value={modifyPayloadText}
+            onChange={(e) => {
+              setModifyPayloadText(e.target.value)
+              setModifyPayloadError(null)
+            }}
+            spellCheck={false}
+          />
+          {modifyPayloadError && (
+            <p className="text-sm text-red-600">{modifyPayloadError}</p>
+          )}
           {modifyId && (
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setModifyOpen(false)} className="px-4 py-2 text-stone-600 hover:text-stone-800">
+              <button type="button" onClick={() => { setModifyOpen(false); setModifyId(null) }} className="px-4 py-2 text-stone-600 hover:text-stone-800">
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  const req = pending.find((r) => r.id === modifyId)
-                  if (req?.proposed_payload) handleModifyApprove(modifyId, req.proposed_payload)
-                  else handleApprove(modifyId)
+                  try {
+                    const parsed = JSON.parse(modifyPayloadText)
+                    handleModifyApprove(modifyId, parsed)
+                  } catch {
+                    setModifyPayloadError('Invalid JSON — please fix the payload before approving.')
+                  }
                 }}
                 disabled={actionLoading === modifyId}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                Approve as-is
+                {actionLoading === modifyId ? 'Approving...' : 'Approve with changes'}
               </button>
             </div>
           )}

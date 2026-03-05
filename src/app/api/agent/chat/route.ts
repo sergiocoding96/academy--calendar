@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { executeChat, continueWithToolResults, isConfigured } from '@/lib/agent/claude/client'
 import type { Message } from '@/lib/agent/claude/client'
 import type { ToolResult } from '@/types/agent'
+import { createClient } from '@/lib/supabase/server'
 import {
   queryTournaments,
   getTournamentDetails,
@@ -107,6 +108,16 @@ async function executeToolCall(
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication — protect against unauthenticated AI/Supabase usage
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Check if Gemini API is configured
     if (!isConfigured()) {
       return new Response(
@@ -144,8 +155,12 @@ export async function POST(request: NextRequest) {
     let response = await executeChat(messages)
     let allContent = response.content
 
-    // Handle tool calls (agentic loop)
-    while (response.stopReason === 'tool_use' && response.toolCalls.length > 0) {
+    // Handle tool calls (agentic loop) — max 5 iterations to prevent infinite cycles
+    let loopIterations = 0
+    const MAX_TOOL_ITERATIONS = 5
+
+    while (response.stopReason === 'tool_use' && response.toolCalls.length > 0 && loopIterations < MAX_TOOL_ITERATIONS) {
+      loopIterations++
       const toolResults: ToolResult[] = []
 
       for (const toolCall of response.toolCalls) {

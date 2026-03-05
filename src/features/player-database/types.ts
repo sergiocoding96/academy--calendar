@@ -35,7 +35,6 @@ export type WhereaboutsUpdate = Database['public']['Tables']['whereabouts']['Upd
 
 export type UtrHistory = Database['public']['Tables']['utr_history']['Row']
 export type UtrHistoryInsert = Database['public']['Tables']['utr_history']['Insert']
-export type UtrHistoryUpdate = Database['public']['Tables']['utr_history']['Update']
 
 export type Attendance = Database['public']['Tables']['attendance']['Row']
 export type AttendanceInsert = Database['public']['Tables']['attendance']['Insert']
@@ -50,13 +49,6 @@ export interface PlayerWithDetails extends Player {
   notes?: PlayerNote[]
   utr_history?: UtrHistory[]
   training_loads?: TrainingLoad[]
-}
-
-export interface PlayerWithStats extends Player {
-  activeInjuries: number
-  trainingDaysThisMonth: number
-  upcomingWhereabouts: Whereabouts[]
-  lastTrainingLoad: TrainingLoad | null
 }
 
 // Filter types

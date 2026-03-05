@@ -72,9 +72,9 @@ export function useInjuries(
 
   const updateInjuryHandler = useCallback(async (injuryId: string, data: InjuryUpdate) => {
     try {
-      await updateInjury(injuryId, data)
+      const updated = await updateInjury(injuryId, data)
       setInjuries(prev =>
-        prev.map(injury => injury.id === injuryId ? { ...injury, ...data } : injury)
+        prev.map(injury => injury.id === injuryId ? updated : injury)
       )
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to update injury')

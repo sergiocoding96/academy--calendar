@@ -118,13 +118,13 @@ export async function GET(request: NextRequest) {
         results.tournamentsSaved = tournamentsData.length
       }
 
-      // Log the scrape job
+      // Log the scrape job — field names match the ScrapeLog type in src/types/agent.ts
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any).from('scrape_logs').insert({
-        source: 'ITF',
-        status: results.errors.length === 0 ? 'success' : 'partial',
+        source_id: 'itf',
+        status: results.errors.length === 0 ? 'completed' : 'failed',
         tournaments_found: results.tournamentsFound,
-        tournaments_saved: results.tournamentsSaved,
+        tournaments_new: results.tournamentsSaved,
         errors: results.errors.length > 0 ? results.errors : null,
         duration_ms: Date.now() - startTime,
       })
@@ -150,8 +150,8 @@ export async function GET(request: NextRequest) {
 }
 
 // Also support POST for manual triggers from admin UI
-export async function POST(request: NextRequest) {
-  // For manual triggers, require authentication
+// Separated from GET so the cron-secret check does not apply to user-initiated requests.
+export async function POST(_request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -162,9 +162,56 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Check if user is admin (you may want to add admin role check)
-  // For now, any authenticated user can trigger
+  // Only admins/coaches may trigger manual scrapes to protect Scrapfly quota
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
 
-  // Reuse GET logic
-  return GET(request)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!profile || !['coach', 'admin'].includes((profile as any).role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Run the actual scrape logic directly (not via GET to avoid cron-secret check)
+  if (!isScrapflyConfigured()) {
+    return NextResponse.json(
+      { error: 'Scraper not configured', message: 'Add SCRAPFLY_API_KEY to environment variables' },
+      { status: 503 }
+    )
+  }
+
+  const startTime = Date.now()
+  const results = { success: false, tournamentsFound: 0, tournamentsSaved: 0, errors: [] as string[], duration: 0 }
+
+  try {
+    const itfResult = await scrapeUpcomingITFJuniors()
+    if (!itfResult.success) results.errors.push(...itfResult.errors)
+    results.tournamentsFound = itfResult.tournaments.length
+
+    if (itfResult.tournaments.length > 0) {
+      const db = await createClient()
+      const tournamentsData = itfResult.tournaments.map(t => ({
+        id: t.id, source_id: t.source_id, external_id: t.external_id || t.id,
+        name: t.name, start_date: t.start_date || null, end_date: t.end_date || null,
+        location: t.location || null, country: t.country || null, category: t.category || null,
+        tournament_type: t.tournament_type || null, level: t.level || null, surface: t.surface || null,
+        entry_deadline: t.entry_deadline || null, website: t.website || null,
+        status: 'pending' as const, scraped_at: new Date().toISOString(), raw_data: t.raw_data || {},
+      }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: upsertError } = await (db as any).from('scraped_tournaments').upsert(tournamentsData, { onConflict: 'id', ignoreDuplicates: false })
+      if (upsertError) results.errors.push(`Database error: ${upsertError.message}`)
+      else results.tournamentsSaved = tournamentsData.length
+    }
+
+    results.success = results.errors.length === 0
+    results.duration = Date.now() - startTime
+    return NextResponse.json(results, { status: results.success ? 200 : 207 })
+  } catch (error) {
+    results.errors.push(error instanceof Error ? error.message : 'Unknown error')
+    results.duration = Date.now() - startTime
+    return NextResponse.json(results, { status: 500 })
+  }
 }

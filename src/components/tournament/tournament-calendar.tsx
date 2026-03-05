@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, MapPin, Users, Star } from 'lucide-react'
-import { format, startOfWeek, addWeeks, getWeek } from 'date-fns'
+import { format, startOfWeek, addWeeks, getWeek, getYear } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/components/auth/auth-provider'
@@ -130,9 +130,15 @@ export function TournamentCalendar() {
   }, [isGuest])
 
   // Filter tournaments by selected week and category
+  // Also compare year to prevent tournaments from prior seasons appearing in Week 1 etc.
+  const selectedWeekData = weeks.find((w) => w.weekNumber === selectedWeek)
+  const selectedYear = selectedWeekData ? getYear(selectedWeekData.startDate) : getYear(currentDate)
+
   const filteredTournaments = tournaments.filter((t) => {
-    const tournamentWeek = getWeek(new Date(t.start_date))
-    const matchesWeek = tournamentWeek === selectedWeek
+    const tournamentDate = new Date(t.start_date)
+    const tournamentWeek = getWeek(tournamentDate)
+    const tournamentYear = getYear(tournamentDate)
+    const matchesWeek = tournamentWeek === selectedWeek && tournamentYear === selectedYear
     const matchesCategory =
       selectedCategory === 'Adults'
         ? t.category === 'Adults'
@@ -140,8 +146,6 @@ export function TournamentCalendar() {
           t.category?.includes(selectedCategory.split('/')[1])
     return matchesWeek && matchesCategory
   })
-
-  const selectedWeekData = weeks.find((w) => w.weekNumber === selectedWeek)
 
   const navigateWeeks = (direction: 'prev' | 'next') => {
     setCurrentDate((prev) => addWeeks(prev, direction === 'next' ? 4 : -4))
@@ -162,7 +166,7 @@ export function TournamentCalendar() {
               >
                 Tournament Calendar
               </h2>
-              <p className="text-red-200 text-sm">2025-2026 Season</p>
+              <p className="text-red-200 text-sm">{currentDate.getFullYear()}-{currentDate.getFullYear() + 1} Season</p>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />

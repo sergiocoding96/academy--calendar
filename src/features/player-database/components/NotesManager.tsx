@@ -308,13 +308,23 @@ export function NotesManager({
   }
 
   const handleDelete = async (noteId: string) => {
-    await deleteNote(noteId)
-    onNotesChange?.()
+    try {
+      await deleteNote(noteId)
+      onNotesChange?.()
+    } catch (err) {
+      console.error('Failed to delete note:', err)
+      alert('Failed to delete note. Please try again.')
+    }
   }
 
   const handleToggleAiContext = async (note: PlayerNote) => {
-    await toggleNoteAiContext(note.id, !note.is_ai_context)
-    onNotesChange?.()
+    try {
+      await toggleNoteAiContext(note.id, !note.is_ai_context)
+      onNotesChange?.()
+    } catch (err) {
+      console.error('Failed to toggle AI context:', err)
+      alert('Failed to update note. Please try again.')
+    }
   }
 
   const handleEdit = (note: PlayerNote) => {

@@ -17,3 +17,9 @@ export type { ParsedTournament } from './parser'
 
 export { searchITF, scrapeUpcomingITFJuniors } from './itf-scraper'
 export type { ITFSearchParams, ITFScraperResult } from './itf-scraper'
+
+export { scrapeCircuit, scrapeMultipleCircuits } from './circuit-scraper'
+export type { CircuitSearchParams, CircuitScraperResult } from './circuit-scraper'
+
+export { hybridFetch, hybridFetchMultiple } from './hybrid-fetcher'
+export type { FetchResult, HybridFetchOptions } from './hybrid-fetcher'

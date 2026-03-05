@@ -81,9 +81,9 @@ export function useWhereabouts(
 
   const updateWhereaboutsHandler = useCallback(async (whereaboutsId: string, data: WhereaboutsUpdate) => {
     try {
-      await updateWhereabouts(whereaboutsId, data)
+      const updated = await updateWhereabouts(whereaboutsId, data)
       setWhereabouts(prev =>
-        prev.map(w => w.id === whereaboutsId ? { ...w, ...data } : w)
+        prev.map(w => w.id === whereaboutsId ? updated : w)
       )
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to update whereabouts')

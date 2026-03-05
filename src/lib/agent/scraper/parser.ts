@@ -35,10 +35,16 @@ export function parseDate(dateStr: string | null | undefined): string | null {
     const patterns: [RegExp, (m: RegExpMatchArray) => string][] = [
       // YYYY-MM-DD
       [/^(\d{4})-(\d{2})-(\d{2})$/, (m) => `${m[1]}-${m[2]}-${m[3]}`],
-      // DD/MM/YYYY
-      [/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, (m) => `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`],
-      // MM/DD/YYYY (US format)
-      [/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, (m) => `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`],
+      // DD/MM/YYYY — day is first segment when it exceeds 12 (unambiguous)
+      [/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, (m) => {
+        const a = parseInt(m[1], 10)
+        const b = parseInt(m[2], 10)
+        // If a > 12 it must be the day; otherwise treat as DD/MM (European)
+        if (a > 12) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+        return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`
+      }],
+      // MM/DD/YYYY (US format — only applies when first segment is unambiguously > 12 as month is impossible)
+      [/^(1[3-9]|[2-9]\d)\/(\d{1,2})\/(\d{4})$/, (m) => `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`],
       // DD.MM.YYYY
       [/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, (m) => `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`],
       // Month DD, YYYY

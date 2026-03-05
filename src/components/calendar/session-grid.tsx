@@ -63,6 +63,7 @@ export function SessionGrid() {
   const [selectedDay, setSelectedDay] = useState(new Date())
   const [sessions, setSessions] = useState<SessionWithDetails[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -145,47 +146,55 @@ export function SessionGrid() {
   // Fetch sessions from Supabase or use mock data for guest
   const fetchSessions = useCallback(async () => {
     setLoading(true)
+    setFetchError(null)
 
-    if (isGuest) {
+    try {
+      if (isGuest) {
+        const dateStr = format(selectedDay, 'yyyy-MM-dd')
+        const mockSessionsForDay = MOCK_CALENDAR_SESSIONS.filter(
+          (session) => session.date === dateStr
+        ).map((session) => ({
+          ...session,
+          players: session.players,
+        })) as SessionWithDetails[]
+        setSessions(mockSessionsForDay)
+        return
+      }
+
+      const supabase = createClient()
       const dateStr = format(selectedDay, 'yyyy-MM-dd')
-      const mockSessionsForDay = MOCK_CALENDAR_SESSIONS.filter(
-        (session) => session.date === dateStr
-      ).map((session) => ({
-        ...session,
-        players: session.players,
-      })) as SessionWithDetails[]
-      setSessions(mockSessionsForDay)
+
+      const { data, error } = await supabase
+        .from('sessions')
+        .select(`
+          *,
+          coach:coaches(*),
+          court:courts(*),
+          session_players(
+            player:players(*)
+          )
+        `)
+        .eq('date', dateStr)
+        .order('start_time')
+
+      if (error) {
+        console.error('Error fetching sessions:', error)
+        setFetchError('Unable to load sessions for this day. Please try again or refresh the page.')
+        setSessions([])
+      } else {
+        const sessionsWithPlayers = data?.map((session: any) => ({
+          ...session,
+          players: session.session_players?.map((sp: any) => sp.player).filter(Boolean)
+        })) || []
+        setSessions(sessionsWithPlayers)
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching sessions:', err)
+      setFetchError('Unexpected error while loading the calendar. Please try again.')
+      setSessions([])
+    } finally {
       setLoading(false)
-      return
     }
-
-    const supabase = createClient()
-    const dateStr = format(selectedDay, 'yyyy-MM-dd')
-
-    const { data, error } = await supabase
-      .from('sessions')
-      .select(`
-        *,
-        coach:coaches(*),
-        court:courts(*),
-        session_players(
-          player:players(*)
-        )
-      `)
-      .eq('date', dateStr)
-      .order('start_time')
-
-    if (error) {
-      console.error('Error fetching sessions:', error)
-    } else {
-      const sessionsWithPlayers = data?.map((session: any) => ({
-        ...session,
-        players: session.session_players?.map((sp: any) => sp.player).filter(Boolean)
-      })) || []
-      setSessions(sessionsWithPlayers)
-    }
-
-    setLoading(false)
   }, [selectedDay, isGuest])
 
   useEffect(() => {
@@ -298,8 +307,16 @@ export function SessionGrid() {
       {/* Grid Body - Time Slots */}
       <div className="max-h-[600px] overflow-y-auto">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+            <p className="text-sm text-stone-500">Loading sessions…</p>
+          </div>
+        ) : sessions.length === 0 && fetchError ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <p className="text-sm text-red-600 mb-2">{fetchError}</p>
+            <p className="text-xs text-stone-500">
+              You can also try changing the day or refreshing the page.
+            </p>
           </div>
         ) : (
           TIME_SLOTS.map((timeSlot) => (

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Calendar, Trophy, Target, Dumbbell, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { PlayerDashboardWrapper } from '@/components/dashboard/player/player-dashboard-wrapper'
+import { formatTime } from '@/lib/utils'
 
 export default async function PlayerDashboardPage() {
   const profile = await getUserProfile()
@@ -19,6 +20,8 @@ export default async function PlayerDashboardPage() {
   if (playerId) {
     try {
       const [sessionsRes, goalsRes, tournamentsRes] = await Promise.all([
+        // Supabase JS SDK does not support filtering on joined relations via .gte('relation.column').
+        // Fetch all and filter in JS instead.
         supabase
           .from('session_players')
           .select(`
@@ -32,32 +35,27 @@ export default async function PlayerDashboardPage() {
             )
           `)
           .eq('player_id', playerId)
-          .gte('session.date', today)
-          .order('session(date)', { ascending: true })
-          .limit(5),
+          .order('created_at', { ascending: false })
+          .limit(50),
         supabase
           .from('goals')
           .select('*', { count: 'exact', head: true })
           .eq('player_id', playerId)
           .eq('status', 'active'),
         supabase
-          .from('tournament_assignments')
-          .select(`
-            tournament:tournaments(
-              id,
-              name,
-              start_date,
-              end_date,
-              location
-            )
-          `)
-          .eq('player_id', playerId)
-          .gte('tournament.start_date', today)
-          .order('tournament(start_date)', { ascending: true })
+          .from('academy_tournaments')
+          .select('id, name, start_date, end_date, location')
+          .gte('start_date', today)
+          .order('start_date', { ascending: true })
           .limit(3),
       ])
 
-      upcomingSessions = (sessionsRes.data as any[] | null) ?? null
+      // Filter upcoming sessions in JS (workaround for missing relation filter support)
+      const allSessions = (sessionsRes.data as any[] | null) ?? []
+      upcomingSessions = allSessions
+        .filter((item) => item.session?.date >= today)
+        .sort((a, b) => (a.session?.date ?? '').localeCompare(b.session?.date ?? ''))
+        .slice(0, 5)
       activeGoalsCount = goalsRes.count ?? 0
       upcomingTournaments = (tournamentsRes.data as any[] | null) ?? null
     } catch {
@@ -66,14 +64,6 @@ export default async function PlayerDashboardPage() {
       activeGoalsCount = 0
       upcomingTournaments = null
     }
-  }
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':')
-    const hour = parseInt(hours)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
   }
 
   const formatDate = (dateStr: string) => {
@@ -168,9 +158,9 @@ export default async function PlayerDashboardPage() {
 
           {upcomingSessions && upcomingSessions.length > 0 ? (
             <div className="space-y-3">
-              {upcomingSessions.map((item: any, index: number) => (
+              {upcomingSessions.map((item: any) => (
                 <div
-                  key={index}
+                  key={item.session?.id ?? Math.random()}
                   className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
                 >
                   <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -178,7 +168,7 @@ export default async function PlayerDashboardPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-stone-800 capitalize">
-                      {item.session?.session_type?.replace('_', ' ') || 'Training'}
+                      {item.session?.session_type?.replaceAll('_', ' ') || 'Training'}
                     </p>
                     <p className="text-sm text-stone-500">
                       {formatDate(item.session?.date)} • {formatTime(item.session?.start_time)} - {formatTime(item.session?.end_time)}
@@ -209,9 +199,9 @@ export default async function PlayerDashboardPage() {
 
           {upcomingTournaments && upcomingTournaments.length > 0 ? (
             <div className="space-y-3">
-              {upcomingTournaments.map((item: any, index: number) => (
+              {upcomingTournaments.map((tournament: any) => (
                 <div
-                  key={index}
+                  key={tournament.id}
                   className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
                 >
                   <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -219,10 +209,10 @@ export default async function PlayerDashboardPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-stone-800">
-                      {item.tournament?.name}
+                      {tournament.name}
                     </p>
                     <p className="text-sm text-stone-500">
-                      {formatDate(item.tournament?.start_date)} • {item.tournament?.location}
+                      {formatDate(tournament.start_date)} • {tournament.location}
                     </p>
                   </div>
                 </div>

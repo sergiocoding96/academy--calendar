@@ -19,7 +19,7 @@ const suggestions = [
   },
   {
     icon: Trophy,
-    text: 'Recommend tournaments for Carlos',
+    text: 'Recommend tournaments for a U16 player',
     color: 'text-amber-600 bg-amber-50 hover:bg-amber-100',
   },
   {

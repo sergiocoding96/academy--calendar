@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Calendar, Users, Trophy, ClipboardList, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { CoachDashboardWrapper } from '@/components/dashboard/coach/coach-dashboard-wrapper'
+import { formatTime } from '@/lib/utils'
 
 export default async function CoachDashboardPage() {
   const profile = await getUserProfile()
@@ -10,63 +11,77 @@ export default async function CoachDashboardPage() {
 
   const coachId = profile?.coach_id || ''
 
-  // Get assigned players count
-  const { count: playersCount } = await supabase
-    .from('player_coach_assignments')
-    .select('*', { count: 'exact', head: true })
-    .eq('coach_id', coachId)
-    .eq('is_primary', true)
+  // If this user isn't linked to a coach profile yet, show a lightweight empty state
+  if (!coachId) {
+    return (
+      <CoachDashboardWrapper>
+        <div className="p-8">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-stone-800">
+              Welcome back, {profile?.full_name?.split(' ')[0] || 'Coach'}!
+            </h1>
+            <p className="text-stone-500 mt-1">
+              Your account is not linked to a coach profile yet. Once linked, your dashboard
+              will show assigned players and sessions.
+            </p>
+          </div>
+        </div>
+      </CoachDashboardWrapper>
+    )
+  }
 
-  // Get today's sessions
   const today = new Date().toISOString().split('T')[0]
-  const { data: todaySessions } = await supabase
-    .from('sessions')
-    .select(`
-      id,
-      date,
-      start_time,
-      end_time,
-      session_type,
-      court:courts(name),
-      session_players(
-        player:players(id, name)
-      )
-    `)
-    .eq('coach_id', coachId)
-    .eq('date', today)
-    .order('start_time', { ascending: true })
-
-  // Get upcoming sessions this week
   const weekEnd = new Date()
   weekEnd.setDate(weekEnd.getDate() + 7)
-  const { count: weekSessionsCount } = await supabase
-    .from('sessions')
-    .select('*', { count: 'exact', head: true })
-    .eq('coach_id', coachId)
-    .gte('date', today)
-    .lte('date', weekEnd.toISOString().split('T')[0])
+  const weekEndStr = weekEnd.toISOString().split('T')[0]
 
-  // Get assigned players with recent activity
-  const { data: assignedPlayers } = await supabase
-    .from('player_coach_assignments')
-    .select(`
-      player:players(
+  // Run all dashboard queries in parallel to reduce load time
+  const [
+    playersCountResult,
+    todaySessionsResult,
+    weekSessionsCountResult,
+    assignedPlayersResult,
+  ] = await Promise.all([
+    supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+      .eq('coach_id', coachId)
+      .eq('is_active', true),
+    supabase
+      .from('sessions')
+      .select(`
         id,
-        name,
-        email
-      )
-    `)
-    .eq('coach_id', coachId)
-    .eq('is_primary', true)
-    .limit(5)
+        date,
+        start_time,
+        end_time,
+        session_type,
+        court:courts(name),
+        session_players(
+          player:players(id, full_name)
+        )
+      `)
+      .eq('coach_id', coachId)
+      .eq('date', today)
+      .order('start_time', { ascending: true }),
+    supabase
+      .from('sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('coach_id', coachId)
+      .gte('date', today)
+      .lte('date', weekEndStr),
+    supabase
+      .from('players')
+      .select('id, full_name, email')
+      .eq('coach_id', coachId)
+      .eq('is_active', true)
+      .order('full_name', { ascending: true })
+      .limit(5),
+  ])
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':')
-    const hour = parseInt(hours)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
-  }
+  const playersCount = playersCountResult.count ?? 0
+  const todaySessions = (todaySessionsResult.data as any[] | null) ?? []
+  const weekSessionsCount = weekSessionsCountResult.count ?? 0
+  const assignedPlayers = (assignedPlayersResult.data as any[] | null) ?? []
 
   return (
     <CoachDashboardWrapper>
@@ -160,7 +175,7 @@ export default async function CoachDashboardPage() {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-stone-800 capitalize">
-                      {session.session_type?.replace('_', ' ') || 'Training'}
+                      {session.session_type?.replaceAll('_', ' ') || 'Training'}
                     </p>
                     <p className="text-sm text-stone-500">
                       {formatTime(session.start_time)} - {formatTime(session.end_time)} • {session.court?.name}
@@ -193,20 +208,20 @@ export default async function CoachDashboardPage() {
 
           {assignedPlayers && assignedPlayers.length > 0 ? (
             <div className="space-y-3">
-              {assignedPlayers.map((item: any, index: number) => (
+              {assignedPlayers.map((player: any) => (
                 <Link
-                  key={index}
-                  href={`/dashboard/coach/players/${item.player?.id}`}
+                  key={player.id}
+                  href={`/dashboard/coach/players/${player.id}`}
                   className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
                 >
                   <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {item.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                      {player.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-stone-800">{item.player?.name}</p>
-                    <p className="text-sm text-stone-500">{item.player?.email}</p>
+                    <p className="font-medium text-stone-800">{player.full_name}</p>
+                    <p className="text-sm text-stone-500">{player.email}</p>
                   </div>
                   <TrendingUp className="w-4 h-4 text-stone-400" />
                 </Link>

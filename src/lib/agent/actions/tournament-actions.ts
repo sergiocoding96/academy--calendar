@@ -35,7 +35,7 @@ export interface CalendarQuery {
   date_to?: string
 }
 
-export interface ToolResult {
+export interface ActionToolResult {
   result: unknown
   isError: boolean
 }
@@ -112,7 +112,7 @@ function getCategoryAgeRange(category: string): { min: number; max: number } | n
 // Query Tournaments
 // ============================================
 
-export async function queryTournaments(input: TournamentQuery): Promise<ToolResult> {
+export async function queryTournaments(input: TournamentQuery): Promise<ActionToolResult> {
   try {
     const authenticated = await isAuthenticated()
 
@@ -248,7 +248,7 @@ export async function queryTournaments(input: TournamentQuery): Promise<ToolResu
 // Get Tournament Details
 // ============================================
 
-export async function getTournamentDetails(input: { tournament_id: string }): Promise<ToolResult> {
+export async function getTournamentDetails(input: { tournament_id: string }): Promise<ActionToolResult> {
   try {
     const authenticated = await isAuthenticated()
 
@@ -323,7 +323,7 @@ export async function getTournamentDetails(input: { tournament_id: string }): Pr
 // List Players
 // ============================================
 
-export async function listPlayers(input: PlayerQuery): Promise<ToolResult> {
+export async function listPlayers(input: PlayerQuery): Promise<ActionToolResult> {
   try {
     const authenticated = await isAuthenticated()
 
@@ -420,7 +420,7 @@ export async function listPlayers(input: PlayerQuery): Promise<ToolResult> {
 // Get Player Info
 // ============================================
 
-export async function getPlayerInfo(input: { player_id?: string; player_name?: string }): Promise<ToolResult> {
+export async function getPlayerInfo(input: { player_id?: string; player_name?: string }): Promise<ActionToolResult> {
   try {
     const authenticated = await isAuthenticated()
 
@@ -518,7 +518,7 @@ export async function getPlayerInfo(input: { player_id?: string; player_name?: s
 // Get Calendar Summary
 // ============================================
 
-export async function getCalendarSummary(input: CalendarQuery): Promise<ToolResult> {
+export async function getCalendarSummary(input: CalendarQuery): Promise<ActionToolResult> {
   try {
     let dateFrom: string
     let dateTo: string
@@ -638,7 +638,7 @@ export async function recommendTournaments(input: {
   date_from?: string
   date_to?: string
   tournament_type?: string
-}): Promise<ToolResult> {
+}): Promise<ActionToolResult> {
   // Use the recommendation engine for full scoring algorithm
   return await getRecommendationSummary(
     input.player_id,
@@ -658,7 +658,7 @@ export async function searchExternal(input: {
   location?: string
   date_from?: string
   date_to?: string
-}): Promise<ToolResult> {
+}): Promise<ActionToolResult> {
   try {
     // Dynamic import to avoid bundling scraper in client
     const { searchITF, isScrapflyConfigured } = await import('@/lib/agent/scraper')
@@ -696,12 +696,11 @@ export async function searchExternal(input: {
       if (error) {
         return {
           result: {
-            message: 'Web scraping not configured. No cached tournaments available.',
+            message: `Database error while searching cached tournaments: ${error.message}`,
             tournaments: [],
             source: 'cache',
-            note: 'Add SCRAPFLY_API_KEY to enable live web scraping.',
           },
-          isError: false,
+          isError: true,
         }
       }
 

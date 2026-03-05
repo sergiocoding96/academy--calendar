@@ -42,13 +42,12 @@ export async function GET(request: NextRequest) {
       court_id,
       coach_id,
       court:courts(id, name),
-      coach:coaches(id, name),
       session_players(
         id,
         player_id,
         status,
         absent_reason,
-        player:players(id, name)
+        player:players(id, full_name)
       )
     `)
     .gte('date', start)

@@ -28,7 +28,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
     .from('user_profiles')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (profileError || !profile) {
     return null

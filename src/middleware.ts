@@ -16,9 +16,22 @@ export async function middleware(request: NextRequest) {
   // Check for guest mode (via cookie)
   const isGuestMode = request.cookies.get('isGuest')?.value === 'true'
 
-  // If Supabase is not configured, skip auth checks but allow guest mode
+  // Protected routes - redirect to login if not authenticated
+  const protectedRoutes = ['/dashboard', '/sessions', '/tournaments', '/people', '/settings', '/match-analysis']
+  const isProtectedRoute = protectedRoutes.some(route =>
+    request.nextUrl.pathname.startsWith(route)
+  )
+
+  // Auth routes - redirect to dashboard if already authenticated
+  const authRoutes = ['/login', '/register']
+  const isAuthRoute = authRoutes.some(route =>
+    request.nextUrl.pathname === route
+  )
+
+  // Only hit Supabase when the route actually needs auth, avoiding a cold
+  // Lambda + network round-trip on every public page request.
   let user = null
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && (isProtectedRoute || isAuthRoute)) {
     const supabase = createServerClient(
       SUPABASE_URL,
       SUPABASE_ANON_KEY,
@@ -45,18 +58,6 @@ export async function middleware(request: NextRequest) {
     const { data } = await supabase.auth.getUser()
     user = data.user
   }
-
-  // Protected routes - redirect to login if not authenticated
-  const protectedRoutes = ['/dashboard', '/sessions', '/tournaments', '/people', '/settings']
-  const isProtectedRoute = protectedRoutes.some(route =>
-    request.nextUrl.pathname.startsWith(route)
-  )
-
-  // Auth routes - redirect to dashboard if already authenticated
-  const authRoutes = ['/login', '/register']
-  const isAuthRoute = authRoutes.some(route =>
-    request.nextUrl.pathname === route
-  )
 
   // Allow guest users to access protected routes
   if (isProtectedRoute && !user && !isGuestMode) {

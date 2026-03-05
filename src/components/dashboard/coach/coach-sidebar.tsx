@@ -32,7 +32,7 @@ export function CoachSidebar() {
 
   const handleSignOut = async () => {
     await signOut()
-    window.location.href = '/login'
+    router.push('/login')
   }
 
   const isActive = (href: string, exact?: boolean) => {
@@ -41,7 +41,7 @@ export function CoachSidebar() {
   }
 
   return (
-    <aside className="w-64 bg-white border-r border-stone-200 flex flex-col h-screen sticky top-0">
+    <aside className="w-64 bg-white border-r border-stone-200 flex flex-col h-screen sticky top-0" aria-label="Coach navigation">
       {/* Logo */}
       <div className="p-6 border-b border-stone-200">
         <Link href="/dashboard/coach" className="flex items-center gap-3">

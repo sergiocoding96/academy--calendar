@@ -2,15 +2,16 @@ import { getPlayerWithDetailsServer } from '@/features/player-database/lib/queri
 import { CoachPlayerDetailClient } from './coach-player-detail-client'
 
 interface CoachPlayerDetailPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function CoachPlayerDetailPage({ params }: CoachPlayerDetailPageProps) {
-  const player = await getPlayerWithDetailsServer(params.id)
+  const { id } = await params
+  const player = await getPlayerWithDetailsServer(id)
 
   return (
     <CoachPlayerDetailClient
-      playerId={params.id}
+      playerId={id}
       initialPlayer={player}
     />
   )

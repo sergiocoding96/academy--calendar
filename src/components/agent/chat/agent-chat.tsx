@@ -51,6 +51,7 @@ export function AgentChat({ className }: AgentChatProps) {
               onClick={clearMessages}
               className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-colors"
               title="Clear conversation"
+              aria-label="Clear conversation"
             >
               <Trash2 className="w-4 h-4" />
             </button>

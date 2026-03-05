@@ -67,7 +67,7 @@ export async function POST(
     .single()
   const { data: player } = await (supabase as any)
     .from('players')
-    .select('name')
+    .select('full_name')
     .eq('id', profile.player_id)
     .single()
   supabase.functions
@@ -76,7 +76,7 @@ export async function POST(
         event: 'absence',
         session_id: sessionId,
         player_id: profile.player_id,
-        player_name: player?.name ?? 'Player',
+        player_name: player?.full_name ?? 'Player',
         session_date: session?.date,
         session_time: session?.start_time,
         session_type: session?.session_type,

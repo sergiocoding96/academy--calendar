@@ -264,7 +264,7 @@ export async function getRecommendations(
     const dateTo = filters.date_to || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
     let tournamentQuery = supabase
-      .from('tournaments')
+      .from('academy_tournaments')
       .select('*')
       .gte('start_date', dateFrom)
       .lte('start_date', dateTo)

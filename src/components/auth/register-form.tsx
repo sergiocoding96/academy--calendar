@@ -70,7 +70,7 @@ export function RegisterForm() {
           .from('players')
           .insert({
             name: fullName,
-            email: email,
+            contact_email: email,
           } as any)
           .select('id')
           .single() as { data: { id: string } | null, error: any }
@@ -99,12 +99,14 @@ export function RegisterForm() {
         coachId = coachData.id
       }
 
+      // Always default new registrations to 'player' — coach role must be granted by an admin
+      const safeRole: UserRole = 'player'
       // Create user profile
       const { error: profileError } = await supabase.from('user_profiles').insert({
         id: authData.user.id,
         email,
         full_name: fullName,
-        role,
+        role: safeRole,
         player_id: playerId,
         coach_id: coachId,
       } as any)

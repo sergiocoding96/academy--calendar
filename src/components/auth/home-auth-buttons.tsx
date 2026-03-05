@@ -16,7 +16,7 @@ export function HomeAuthButtons() {
 
   const handleSignOut = async () => {
     await signOut()
-    window.location.href = '/login'
+    router.push('/login')
   }
 
   if (user || isGuest) {

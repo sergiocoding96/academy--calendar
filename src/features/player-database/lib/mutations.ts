@@ -266,7 +266,7 @@ export async function markAttendance(data: AttendanceInsert): Promise<Attendance
   const supabase = getClient()
   const { data: attendance, error } = await supabase
     .from('attendance')
-    .insert(data)
+    .upsert(data, { onConflict: 'player_id,attendance_date' })
     .select()
     .single()
 

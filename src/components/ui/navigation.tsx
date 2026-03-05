@@ -28,7 +28,7 @@ export function Navigation() {
   const handleSignOut = async () => {
     setDropdownOpen(false)
     await signOut()
-    window.location.href = '/login'
+    router.push('/login')
   }
 
   // Close dropdown when clicking outside
@@ -61,7 +61,7 @@ export function Navigation() {
   }
 
   return (
-    <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
+    <nav className="bg-white border-b border-stone-200 sticky top-0 z-50" aria-label="Main navigation">
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}

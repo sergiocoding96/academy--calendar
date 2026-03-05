@@ -76,9 +76,9 @@ export function useTrainingLoads(
 
   const updateLoad = useCallback(async (loadId: string, data: TrainingLoadUpdate) => {
     try {
-      await updateTrainingLoad(loadId, data)
+      const updated = await updateTrainingLoad(loadId, data)
       setTrainingLoads(prev =>
-        prev.map(load => load.id === loadId ? { ...load, ...data } : load)
+        prev.map(load => load.id === loadId ? updated : load)
       )
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to update training load')

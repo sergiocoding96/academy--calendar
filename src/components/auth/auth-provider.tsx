@@ -1,18 +1,18 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { UserProfile } from '@/types/database'
 
-// Mock guest profile for demo purposes (coach role to see full system)
+// Mock guest profile for demo/preview purposes (player role — read-only access)
 const GUEST_PROFILE: UserProfile = {
   id: 'guest-user-id',
   email: 'guest@sototennis.demo',
-  full_name: 'Demo Coach',
-  role: 'coach',
+  full_name: 'Demo User',
+  role: 'player',
   player_id: null,
-  coach_id: 'guest-coach-id',
+  coach_id: null,
   created_at: new Date().toISOString(),
   avatar_url: null,
 }
@@ -50,6 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isGuest, setIsGuest] = useState(false)
+  // Ref keeps the auth-state-change listener in sync without re-registering it
+  const isGuestRef = useRef(false)
   const supabase = createClient()
 
   const fetchProfile = async (userId: string) => {
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (!error && data) {
         setProfile(data)
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signInAsGuest = () => {
+    isGuestRef.current = true
     setIsGuest(true)
     setProfile(GUEST_PROFILE)
     setUser({ id: 'guest-user-id', email: 'guest@sototennis.demo' } as User)
@@ -87,7 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    if (isGuest) {
+    if (isGuestRef.current) {
+      isGuestRef.current = false
       setIsGuest(false)
       if (typeof window !== 'undefined') {
         localStorage.removeItem('isGuest')
@@ -131,9 +135,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initSession()
 
     // Listen for auth changes (e.g. sign in/out, token refresh)
+    // Use isGuestRef (not isGuest state) to avoid stale closure
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (isGuest) return
+        if (isGuestRef.current) return
 
         const currentUser = session?.user ?? null
         setUser(currentUser)

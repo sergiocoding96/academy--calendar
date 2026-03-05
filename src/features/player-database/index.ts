@@ -29,14 +29,12 @@ export type {
   WhereaboutsUpdate,
   UtrHistory,
   UtrHistoryInsert,
-  UtrHistoryUpdate,
   Attendance,
   AttendanceInsert,
   AttendanceUpdate,
   Profile,
   // Extended types
   PlayerWithDetails,
-  PlayerWithStats,
   // Filter types - use the interface name to avoid conflict with component
   PlayerFilterOptions,
   DateRange,

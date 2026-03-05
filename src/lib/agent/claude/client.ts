@@ -6,7 +6,7 @@ import { getToolDefinitions } from './tools'
 // Initialize Google AI client
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '')
 
-const MODEL = 'gemini-3-flash-preview'
+const MODEL = 'gemini-2.0-flash'
 
 export interface Message {
   role: 'user' | 'assistant'
@@ -250,9 +250,10 @@ export async function continueWithToolResults(
   const chat = model.startChat({ history })
 
   // Send function responses as Parts
+  // Tool call IDs are formatted as `gemini_<timestamp>_<toolName>` — strip the prefix
   const functionResponseParts: Part[] = toolResults.map((tr) => ({
     functionResponse: {
-      name: tr.toolCallId.split('_').pop() || 'unknown',
+      name: tr.toolCallId.replace(/^gemini_\d+_/, '') || 'unknown',
       response: { result: tr.result },
     },
   }))

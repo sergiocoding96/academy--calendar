@@ -1,8 +1,32 @@
 import Link from 'next/link'
 import { Calendar, Trophy, Users, Settings, Heart, Brain, BarChart3 } from 'lucide-react'
 import { HomeAuthButtons } from '@/components/auth/home-auth-buttons'
+import { createClient } from '@/lib/supabase/server'
 
-export default function Home() {
+async function getOverviewStats() {
+  try {
+    const supabase = await createClient()
+    const today = new Date().toISOString().split('T')[0]
+    const threeMonthsOut = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    const [sessionsRes, playersRes, tournamentsRes] = await Promise.all([
+      supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('date', today),
+      supabase.from('players').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('academy_tournaments').select('*', { count: 'exact', head: true }).gte('start_date', today).lte('start_date', threeMonthsOut),
+    ])
+
+    return {
+      sessionsToday: sessionsRes.count ?? 0,
+      activePlayers: playersRes.count ?? 0,
+      upcomingTournaments: tournamentsRes.count ?? 0,
+    }
+  } catch {
+    return { sessionsToday: 0, activePlayers: 0, upcomingTournaments: 0 }
+  }
+}
+
+export default async function Home() {
+  const stats = await getOverviewStats()
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-100 via-stone-50 to-stone-100">
       {/* Header */}
@@ -145,21 +169,18 @@ export default function Home() {
           <div className="bg-white rounded-2xl border border-stone-200 p-8 shadow-lg">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="text-4xl font-black text-blue-600 mb-2">--</div>
+                <div className="text-4xl font-black text-blue-600 mb-2">{stats.sessionsToday}</div>
                 <div className="text-stone-500 text-sm">Sessions Today</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-black text-green-600 mb-2">--</div>
+                <div className="text-4xl font-black text-green-600 mb-2">{stats.activePlayers}</div>
                 <div className="text-stone-500 text-sm">Active Players</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-black text-red-600 mb-2">--</div>
+                <div className="text-4xl font-black text-red-600 mb-2">{stats.upcomingTournaments}</div>
                 <div className="text-stone-500 text-sm">Upcoming Tournaments</div>
               </div>
             </div>
-            <p className="text-center text-stone-400 text-sm mt-6">
-              Connect to Supabase to see live data
-            </p>
           </div>
         </div>
       </main>

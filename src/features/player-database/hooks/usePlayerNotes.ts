@@ -69,9 +69,9 @@ export function usePlayerNotes(
 
   const updateNoteHandler = useCallback(async (noteId: string, data: PlayerNoteUpdate) => {
     try {
-      await updateNote(noteId, data)
+      const updated = await updateNote(noteId, data)
       setNotes(prev =>
-        prev.map(note => note.id === noteId ? { ...note, ...data } : note)
+        prev.map(note => note.id === noteId ? updated : note)
       )
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to update note')
