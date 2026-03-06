@@ -9,19 +9,25 @@ export default async function PlayerGoalsPage() {
 
   const playerId = profile?.player_id || ''
 
-  // Get all goals for this player
-  const { data: goals } = await supabase
-    .from('goals')
-    .select(`
-      *,
-      goal_progress(
-        id,
-        recorded_at,
-        value
-      )
-    `)
-    .eq('player_id', playerId)
-    .order('created_at', { ascending: false }) as { data: any[] | null }
+  // Get all goals for this player (table may not exist yet)
+  let goals: any[] | null = null
+  try {
+    const { data } = await supabase
+      .from('goals')
+      .select(`
+        *,
+        goal_progress(
+          id,
+          recorded_at,
+          value
+        )
+      `)
+      .eq('player_id', playerId)
+      .order('created_at', { ascending: false })
+    goals = data as any[] | null
+  } catch {
+    // Table may not exist yet — show empty state
+  }
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)

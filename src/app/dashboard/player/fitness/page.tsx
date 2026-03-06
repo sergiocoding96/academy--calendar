@@ -9,13 +9,19 @@ export default async function PlayerFitnessPage() {
 
   const playerId = profile?.player_id || ''
 
-  // Get fitness logs for this player
-  const { data: fitnessLogs } = await supabase
-    .from('fitness_logs')
-    .select('*')
-    .eq('player_id', playerId)
-    .order('log_date', { ascending: false })
-    .limit(50) as { data: any[] | null }
+  // Get fitness logs for this player (table may not exist yet)
+  let fitnessLogs: any[] | null = null
+  try {
+    const { data } = await supabase
+      .from('fitness_logs')
+      .select('*')
+      .eq('player_id', playerId)
+      .order('log_date', { ascending: false })
+      .limit(50)
+    fitnessLogs = data as any[] | null
+  } catch {
+    // Table may not exist yet — show empty state
+  }
 
   // Group logs by date
   const groupedLogs: { [key: string]: any[] } = {}
