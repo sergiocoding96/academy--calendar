@@ -112,8 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = 'isGuest=; path=/; max-age=0'
       }
     } else {
-      // Fire-and-forget: don't let a slow/failing API call block the redirect
-      supabase.auth.signOut().catch(() => {})
+      // scope:'local' clears cookies/storage synchronously — no network call,
+      // no race condition with the next sign-in.
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     }
   }, [supabase])
 
