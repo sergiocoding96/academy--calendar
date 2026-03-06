@@ -152,6 +152,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Skip INITIAL_SESSION event — already handled by initSession above
         if (event === 'INITIAL_SESSION' && !initialSessionResolved.current) return
 
+        // TOKEN_REFRESHED with no session means the refresh token is invalid.
+        // Clear state and sign out to prevent an infinite retry loop.
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          try { await supabase.auth.signOut() } catch { /* ignore */ }
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
+
         const currentUser = session?.user ?? null
         setUser(currentUser)
 

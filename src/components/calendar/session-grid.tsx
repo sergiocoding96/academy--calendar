@@ -210,7 +210,13 @@ export function SessionGrid() {
   useEffect(() => {
     if (authLoading) {
       setLoading(true)
-      return
+      // Safety net: if auth hangs for more than 10 s, stop loading so the UI
+      // doesn't appear frozen. The user can still change the day to retry.
+      const safetyTimeout = setTimeout(() => {
+        setLoading(false)
+        setFetchError('Authentication took too long. Please refresh the page.')
+      }, 10_000)
+      return () => clearTimeout(safetyTimeout)
     }
     fetchSessions()
   }, [authLoading, fetchSessions])

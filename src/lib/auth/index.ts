@@ -40,7 +40,7 @@ export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
 /**
  * Check if the current user (profile) is allowed to access or mutate data for the given player.
  * - Player: only their own player_id
- * - Coach: only players where players.coach_id = profile.coach_id (coaches.id = profiles.id in schema)
+ * - Coach: only players assigned via player_coach_assignments where coach_id matches
  * - Admin: all players
  */
 export async function canAccessPlayer(
@@ -49,14 +49,15 @@ export async function canAccessPlayer(
 ): Promise<boolean> {
   if (profile.role === 'admin') return true
   if (profile.role === 'player') return profile.player_id === playerId
-  if (profile.role === 'coach' && (profile as UserProfile).coach_id) {
+  if (profile.role === 'coach' && profile.coach_id) {
     const supabase = await createClient()
-    const { data: player } = await (supabase as any)
-      .from('players')
-      .select('coach_id')
-      .eq('id', playerId)
+    const { data: assignment } = await (supabase as any)
+      .from('player_coach_assignments')
+      .select('id')
+      .eq('player_id', playerId)
+      .eq('coach_id', profile.coach_id)
       .maybeSingle()
-    return player?.coach_id === (profile as UserProfile).coach_id
+    return !!assignment
   }
   return false
 }

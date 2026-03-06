@@ -2,7 +2,8 @@
 -- Coaches see only their assigned players; players see only their own data; admins see all.
 -- Run after 20250211000000_player_database_schema.sql
 
--- Helper: user is admin
+-- Helper: check if the calling user may access a given player's data.
+-- Admin: always. Player: only their own. Coach: via player_coach_assignments.
 CREATE OR REPLACE FUNCTION public.can_access_player_rls(target_player_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -16,8 +17,8 @@ AS $$
       up.role = 'admin'
       OR (up.role = 'player' AND up.player_id = target_player_id)
       OR (up.role = 'coach' AND EXISTS (
-        SELECT 1 FROM players p
-        WHERE p.id = target_player_id AND p.coach_id = up.coach_id
+        SELECT 1 FROM player_coach_assignments pca
+        WHERE pca.player_id = target_player_id AND pca.coach_id = up.coach_id
       ))
     )
   );
