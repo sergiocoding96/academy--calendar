@@ -49,6 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = supabaseRef.current
   // Track whether initial session has been resolved to avoid double-fetch
   const initialSessionResolved = useRef(false)
+  // Prevent the auth listener from interfering after sign-out
+  const signingOutRef = useRef(false)
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -60,9 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!error && data) {
         setProfile(data)
+      } else if (error) {
+        // Auth error (e.g. expired JWT) — don't silently leave profile as stale
+        setProfile(null)
       }
     } catch {
-      // Profile fetch failed; leave profile null
+      setProfile(null)
     }
   }, [supabase])
 
@@ -86,6 +91,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    // Prevent the onAuthStateChange listener from interfering
+    signingOutRef.current = true
+
     // Clear local state immediately so the UI responds instantly
     setUser(null)
     setProfile(null)
@@ -149,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
+        if (signingOutRef.current) return
         // Skip INITIAL_SESSION event — already handled by initSession above
         if (event === 'INITIAL_SESSION' && !initialSessionResolved.current) return
 
