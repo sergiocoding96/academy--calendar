@@ -86,22 +86,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    // Clear local state immediately so the UI responds instantly
+    setUser(null)
+    setProfile(null)
+    setLoading(false)
+
     if (isGuestRef.current) {
       isGuestRef.current = false
       setIsGuest(false)
       if (typeof window !== 'undefined') {
         localStorage.removeItem('isGuest')
-        document.cookie = 'isGuest=; path=/; max-age=0' // Clear cookie
+        document.cookie = 'isGuest=; path=/; max-age=0'
       }
     } else {
-      try {
-        await supabase.auth.signOut()
-      } catch {
-        // Sign-out API call failed; clear local state anyway
-      }
+      // Fire-and-forget: don't let a slow/failing API call block the redirect
+      supabase.auth.signOut().catch(() => {})
     }
-    setUser(null)
-    setProfile(null)
   }, [supabase])
 
   useEffect(() => {
