@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getPlayerAttendance } from '../lib/queries'
-import { markAttendance, updateAttendance, deleteAttendance, markBulkAttendance } from '../lib/mutations'
+import { markAttendanceAction, updateAttendanceAction, deleteAttendanceAction, markBulkAttendanceAction } from '../actions'
 import type { Attendance, AttendanceInsert, AttendanceUpdate, DateRange, AttendanceStatus } from '../types'
 
 interface UseAttendanceOptions {
@@ -75,7 +75,7 @@ export function useAttendance(
     if (!playerId) throw new Error('No player ID provided')
 
     const attendanceDate = date || new Date().toISOString().split('T')[0]
-    const newEntry = await markAttendance({
+    const newEntry = await markAttendanceAction({
       player_id: playerId,
       attendance_date: attendanceDate,
       status: 'present'
@@ -88,7 +88,7 @@ export function useAttendance(
     if (!playerId) throw new Error('No player ID provided')
 
     const attendanceDate = date || new Date().toISOString().split('T')[0]
-    const newEntry = await markAttendance({
+    const newEntry = await markAttendanceAction({
       player_id: playerId,
       attendance_date: attendanceDate,
       status: 'absent',
@@ -106,7 +106,7 @@ export function useAttendance(
     if (!playerId) throw new Error('No player ID provided')
 
     const attendanceDate = date || new Date().toISOString().split('T')[0]
-    const newEntry = await markAttendance({
+    const newEntry = await markAttendanceAction({
       player_id: playerId,
       attendance_date: attendanceDate,
       status,
@@ -118,7 +118,7 @@ export function useAttendance(
 
   const updateEntry = useCallback(async (attendanceId: string, data: AttendanceUpdate) => {
     try {
-      await updateAttendance(attendanceId, data)
+      await updateAttendanceAction(playerId!, attendanceId, data)
       setAttendance(prev =>
         prev.map(entry => entry.id === attendanceId ? { ...entry, ...data } : entry)
       )
@@ -129,7 +129,7 @@ export function useAttendance(
 
   const removeEntry = useCallback(async (attendanceId: string) => {
     try {
-      await deleteAttendance(attendanceId)
+      await deleteAttendanceAction(playerId!, attendanceId)
       setAttendance(prev => prev.filter(entry => entry.id !== attendanceId))
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete attendance')
@@ -138,7 +138,7 @@ export function useAttendance(
 
   const markMultiple = useCallback(async (entries: AttendanceInsert[]): Promise<Attendance[]> => {
     try {
-      const newEntries = await markBulkAttendance(entries)
+      const newEntries = await markBulkAttendanceAction(entries)
       await fetchAttendance() // Refetch to get accurate state
       return newEntries
     } catch (err) {

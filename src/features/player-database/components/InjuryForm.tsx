@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Save, X, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createInjury, updateInjury, clearInjury } from '../lib/mutations'
+import { createInjuryAction, updateInjuryAction, clearInjuryAction } from '../actions'
 import type { Injury, InjuryInsert, InjuryUpdate, InjurySeverity, InjuryStatus } from '../types'
 
 interface InjuryFormProps {
@@ -145,7 +145,7 @@ export function InjuryForm({
       if (isEditing && injury) {
         // If marking as cleared, use the clearInjury mutation
         if (formData.status === 'cleared' && injury.status !== 'cleared') {
-          result = await clearInjury(injury.id, formData.actual_return)
+          result = await clearInjuryAction(playerId, injury.id, formData.actual_return)
         } else {
           const updateData: InjuryUpdate = {
             body_part: formData.body_part,
@@ -157,7 +157,7 @@ export function InjuryForm({
             actual_return: formData.actual_return || null,
             notes: formData.notes.trim() || null,
           }
-          result = await updateInjury(injury.id, updateData)
+          result = await updateInjuryAction(playerId, injury.id, updateData)
         }
       } else {
         const insertData: InjuryInsert = {
@@ -170,7 +170,7 @@ export function InjuryForm({
           expected_return: formData.expected_return || null,
           notes: formData.notes.trim() || null,
         }
-        result = await createInjury(insertData)
+        result = await createInjuryAction(insertData)
       }
 
       onSuccess?.(result)
@@ -188,7 +188,7 @@ export function InjuryForm({
     setSubmitError(null)
 
     try {
-      const result = await clearInjury(injury.id, formData.actual_return)
+      const result = await clearInjuryAction(playerId, injury.id, formData.actual_return)
       onSuccess?.(result)
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Failed to clear injury')

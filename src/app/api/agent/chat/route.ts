@@ -118,6 +118,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Restrict agent to coach and admin (tools expose player/schedule data)
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+    const role = (profile as { role?: string } | null)?.role
+    if (!role || !['coach', 'admin'].includes(role)) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Tournament agent is available to coaches and admins only.' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Check if Gemini API is configured
     if (!isConfigured()) {
       return new Response(

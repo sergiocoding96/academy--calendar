@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { getPlayerTrainingLoads } from '../lib/queries'
-import { createTrainingLoad, updateTrainingLoad, deleteTrainingLoad } from '../lib/mutations'
+import { createTrainingLoadAction, updateTrainingLoadAction, deleteTrainingLoadAction } from '../actions'
 import type { TrainingLoad, TrainingLoadInsert, TrainingLoadUpdate, DateRange } from '../types'
 
 interface UseTrainingLoadsOptions {
@@ -71,7 +71,7 @@ export function useTrainingLoads(
     if (!playerId) throw new Error('No player ID provided')
 
     try {
-      const newLoad = await createTrainingLoad({ ...data, player_id: playerId })
+      const newLoad = await createTrainingLoadAction({ ...data, player_id: playerId })
       setTrainingLoads(prev => [newLoad, ...prev])
       return newLoad
     } catch (err) {
@@ -81,7 +81,7 @@ export function useTrainingLoads(
 
   const updateLoad = useCallback(async (loadId: string, data: TrainingLoadUpdate) => {
     try {
-      const updated = await updateTrainingLoad(loadId, data)
+      const updated = await updateTrainingLoadAction(playerId!, loadId, data)
       setTrainingLoads(prev =>
         prev.map(load => load.id === loadId ? updated : load)
       )
@@ -92,7 +92,7 @@ export function useTrainingLoads(
 
   const removeLoad = useCallback(async (loadId: string) => {
     try {
-      await deleteTrainingLoad(loadId)
+      await deleteTrainingLoadAction(playerId!, loadId)
       setTrainingLoads(prev => prev.filter(load => load.id !== loadId))
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete training load')

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2, Save, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createPlayer, updatePlayer } from '../lib/mutations'
+import { createPlayerAction, updatePlayerAction } from '../actions'
 import type { Player, PlayerInsert, PlayerUpdate, PlayerCategory, PlayerGender, Profile } from '../types'
 
 interface PlayerFormProps {
@@ -139,9 +139,9 @@ export function PlayerForm({
 
       let result: Player
       if (isEditing && player) {
-        result = await updatePlayer(player.id, data as PlayerUpdate)
+        result = await updatePlayerAction(player.id, data as PlayerUpdate)
       } else {
-        result = await createPlayer(data as PlayerInsert)
+        result = await createPlayerAction(data as PlayerInsert)
       }
 
       onSuccess?.(result)

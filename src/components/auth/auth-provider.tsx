@@ -117,15 +117,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session
     const initSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const currentUser = session?.user ?? null
-        setUser(currentUser)
+        const { data: { session }, error } = await supabase.auth.getSession()
 
-        if (currentUser) {
-          await fetchProfile(currentUser.id)
+        if (error?.code === 'refresh_token_not_found' || error?.message?.toLowerCase().includes('refresh token')) {
+          try {
+            await supabase.auth.signOut()
+          } catch {
+            // ignore
+          }
+          setUser(null)
+          setProfile(null)
+        } else {
+          const currentUser = session?.user ?? null
+          setUser(currentUser)
+          if (currentUser) {
+            await fetchProfile(currentUser.id)
+          }
         }
       } catch {
-        // Session check failed; listener will update when auth state is known
+        setUser(null)
+        setProfile(null)
       } finally {
         initialSessionResolved.current = true
         setLoading(false)

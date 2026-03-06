@@ -82,6 +82,16 @@ export default async function PlayerDashboardPage() {
           <p className="text-stone-500 mt-1">Here's your training overview</p>
         </div>
 
+        {/* Player profile not linked — prompt to complete setup */}
+        {profile?.role === 'player' && !profile?.player_id && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+            <p className="font-medium">Complete your profile</p>
+            <p className="text-sm mt-1">
+              Your account is not yet linked to a player record. Sessions, goals, and tournaments will appear here once an academy coach links your account. Contact your coach or check Settings if you believe this is an error.
+            </p>
+          </div>
+        )}
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Link

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getPlayerUtrHistory } from '../lib/queries'
-import { addUtrEntry, deleteUtrEntry } from '../lib/mutations'
+import { addUtrEntryAction, deleteUtrEntryAction } from '../actions'
 import type { UtrHistory, UtrHistoryInsert, DateRange } from '../types'
 
 interface UseUtrHistoryOptions {
@@ -70,7 +70,7 @@ export function useUtrHistory(
     if (!playerId) throw new Error('No player ID provided')
 
     try {
-      const newEntry = await addUtrEntry({ ...data, player_id: playerId })
+      const newEntry = await addUtrEntryAction({ ...data, player_id: playerId })
       setUtrHistory(prev => [newEntry, ...prev].sort((a, b) =>
         new Date(b.recorded_date).getTime() - new Date(a.recorded_date).getTime()
       ))
@@ -82,7 +82,7 @@ export function useUtrHistory(
 
   const removeEntry = useCallback(async (entryId: string) => {
     try {
-      await deleteUtrEntry(entryId)
+      await deleteUtrEntryAction(playerId!, entryId)
       setUtrHistory(prev => prev.filter(entry => entry.id !== entryId))
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete UTR entry')

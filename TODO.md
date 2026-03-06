@@ -14,7 +14,7 @@
 | Task | Feature | Status | Est. Hours | Notes |
 |------|---------|--------|------------|-------|
 | Player Database UI | Player Database | ✅ COMPLETE | - | All phases done |
-| Security fixes (RLS policies) | Player Database | ⏳ Pending | - | See CLAUDE.md for audit findings |
+| Security fixes (RLS, IDOR, guest) | Player Database / Auth | ✅ COMPLETE | - | RLS migration 20250305, canAccessPlayer, guest layout |
 
 ---
 

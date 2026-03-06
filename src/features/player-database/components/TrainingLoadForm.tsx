@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Save, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createTrainingLoad, updateTrainingLoad } from '../lib/mutations'
+import { createTrainingLoadAction, updateTrainingLoadAction } from '../actions'
 import type { TrainingLoad, TrainingLoadInsert, TrainingLoadUpdate } from '../types'
 
 interface TrainingLoadFormProps {
@@ -114,9 +114,9 @@ export function TrainingLoadForm({
           session_type: data.session_type,
           notes: data.notes,
         }
-        result = await updateTrainingLoad(trainingLoad.id, updateData)
+        result = await updateTrainingLoadAction(playerId, trainingLoad.id, updateData)
       } else {
-        result = await createTrainingLoad(data as TrainingLoadInsert)
+        result = await createTrainingLoadAction(data as TrainingLoadInsert)
       }
 
       onSuccess?.(result)

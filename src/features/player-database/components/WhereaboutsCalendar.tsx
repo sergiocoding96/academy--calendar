@@ -14,7 +14,7 @@ import {
   Edit2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createWhereabouts, updateWhereabouts, deleteWhereabouts } from '../lib/mutations'
+import { createWhereaboutsAction, updateWhereaboutsAction, deleteWhereaboutsAction } from '../actions'
 import type { Whereabouts, WhereaboutsInsert, WhereaboutsUpdate, WhereaboutsType } from '../types'
 
 interface WhereaboutsCalendarProps {
@@ -284,7 +284,7 @@ export function WhereaboutsCalendar({
           description: data.description.trim() || null,
           location: data.location.trim() || null,
         }
-        await updateWhereabouts(editingEntry.id, updateData)
+        await updateWhereaboutsAction(playerId, editingEntry.id, updateData)
       } else {
         const insertData: WhereaboutsInsert = {
           player_id: playerId,
@@ -294,7 +294,7 @@ export function WhereaboutsCalendar({
           description: data.description.trim() || null,
           location: data.location.trim() || null,
         }
-        await createWhereabouts(insertData)
+        await createWhereaboutsAction(insertData)
       }
       setShowForm(false)
       setEditingEntry(null)
@@ -307,7 +307,7 @@ export function WhereaboutsCalendar({
   const handleDelete = async (entryId: string) => {
     if (!confirm('Are you sure you want to delete this entry?')) return
 
-    await deleteWhereabouts(entryId)
+    await deleteWhereaboutsAction(playerId, entryId)
     setSelectedEntry(null)
     onWhereaboutsChange?.()
   }

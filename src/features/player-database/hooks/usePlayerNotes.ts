@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getPlayerNotes } from '../lib/queries'
-import { createNote, updateNote, deleteNote, toggleNoteAiContext } from '../lib/mutations'
+import { createNoteAction, updateNoteAction, deleteNoteAction, toggleNoteAiContextAction } from '../actions'
 import type { PlayerNote, PlayerNoteInsert, PlayerNoteUpdate } from '../types'
 
 interface UsePlayerNotesOptions {
@@ -59,7 +59,7 @@ export function usePlayerNotes(
     if (!playerId) throw new Error('No player ID provided')
 
     try {
-      const newNote = await createNote({ ...data, player_id: playerId })
+      const newNote = await createNoteAction({ ...data, player_id: playerId })
       setNotes(prev => [newNote, ...prev])
       return newNote
     } catch (err) {
@@ -69,7 +69,7 @@ export function usePlayerNotes(
 
   const updateNoteHandler = useCallback(async (noteId: string, data: PlayerNoteUpdate) => {
     try {
-      const updated = await updateNote(noteId, data)
+      const updated = await updateNoteAction(playerId!, noteId, data)
       setNotes(prev =>
         prev.map(note => note.id === noteId ? updated : note)
       )
@@ -80,7 +80,7 @@ export function usePlayerNotes(
 
   const removeNote = useCallback(async (noteId: string) => {
     try {
-      await deleteNote(noteId)
+      await deleteNoteAction(playerId!, noteId)
       setNotes(prev => prev.filter(note => note.id !== noteId))
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete note')
@@ -89,7 +89,7 @@ export function usePlayerNotes(
 
   const toggleAiContext = useCallback(async (noteId: string, isAiContext: boolean) => {
     try {
-      await toggleNoteAiContext(noteId, isAiContext)
+      await toggleNoteAiContextAction(playerId!, noteId, isAiContext)
       setNotes(prev =>
         prev.map(note =>
           note.id === noteId ? { ...note, is_ai_context: isAiContext } : note

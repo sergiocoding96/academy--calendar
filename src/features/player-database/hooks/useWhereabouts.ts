@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { getPlayerWhereabouts, getUpcomingWhereabouts } from '../lib/queries'
-import { createWhereabouts, updateWhereabouts, deleteWhereabouts } from '../lib/mutations'
+import { createWhereaboutsAction, updateWhereaboutsAction, deleteWhereaboutsAction } from '../actions'
 import type { Whereabouts, WhereaboutsInsert, WhereaboutsUpdate, DateRange } from '../types'
 
 interface UseWhereaboutsOptions {
@@ -74,7 +74,7 @@ export function useWhereabouts(
     if (!playerId) throw new Error('No player ID provided')
 
     try {
-      const newWhereabouts = await createWhereabouts({ ...data, player_id: playerId })
+      const newWhereabouts = await createWhereaboutsAction({ ...data, player_id: playerId })
       setWhereabouts(prev => [...prev, newWhereabouts].sort((a, b) =>
         new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
       ))
@@ -86,7 +86,7 @@ export function useWhereabouts(
 
   const updateWhereaboutsHandler = useCallback(async (whereaboutsId: string, data: WhereaboutsUpdate) => {
     try {
-      const updated = await updateWhereabouts(whereaboutsId, data)
+      const updated = await updateWhereaboutsAction(playerId!, whereaboutsId, data)
       setWhereabouts(prev =>
         prev.map(w => w.id === whereaboutsId ? updated : w)
       )
@@ -97,7 +97,7 @@ export function useWhereabouts(
 
   const removeWhereabouts = useCallback(async (whereaboutsId: string) => {
     try {
-      await deleteWhereabouts(whereaboutsId)
+      await deleteWhereaboutsAction(playerId!, whereaboutsId)
       setWhereabouts(prev => prev.filter(w => w.id !== whereaboutsId))
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete whereabouts')

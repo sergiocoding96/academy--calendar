@@ -58,7 +58,7 @@ const TIME_SLOTS = generateTimeSlots(7, 21)
 
 export function SessionGrid() {
   const router = useRouter()
-  const { isGuest, profile } = useAuth()
+  const { isGuest, profile, loading: authLoading } = useAuth()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date())
   const [sessions, setSessions] = useState<SessionWithDetails[]>([])
@@ -148,6 +148,11 @@ export function SessionGrid() {
     setLoading(true)
     setFetchError(null)
 
+    const timeoutId = setTimeout(() => {
+      setLoading(false)
+      setFetchError('Request timed out. Please check your connection and try again.')
+    }, 15000)
+
     try {
       if (isGuest) {
         const dateStr = format(selectedDay, 'yyyy-MM-dd')
@@ -158,6 +163,8 @@ export function SessionGrid() {
           players: session.players,
         })) as SessionWithDetails[]
         setSessions(mockSessionsForDay)
+        clearTimeout(timeoutId)
+        setLoading(false)
         return
       }
 
@@ -177,6 +184,8 @@ export function SessionGrid() {
         .eq('date', dateStr)
         .order('start_time')
 
+      clearTimeout(timeoutId)
+
       if (error) {
         console.error('Error fetching sessions:', error)
         setFetchError('Unable to load sessions for this day. Please try again or refresh the page.')
@@ -190,6 +199,7 @@ export function SessionGrid() {
       }
     } catch (err) {
       console.error('Unexpected error fetching sessions:', err)
+      clearTimeout(timeoutId)
       setFetchError('Unexpected error while loading the calendar. Please try again.')
       setSessions([])
     } finally {
@@ -198,8 +208,12 @@ export function SessionGrid() {
   }, [selectedDay, isGuest])
 
   useEffect(() => {
+    if (authLoading) {
+      setLoading(true)
+      return
+    }
     fetchSessions()
-  }, [fetchSessions])
+  }, [authLoading, fetchSessions])
 
   // Refetch when user returns to this tab (e.g. after approving a new session on another page)
   useEffect(() => {
@@ -315,7 +329,7 @@ export function SessionGrid() {
 
       {/* Grid Body - Time Slots */}
       <div className="max-h-[600px] overflow-y-auto">
-        {loading ? (
+        {authLoading || loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
             <p className="text-sm text-stone-500">Loading sessions…</p>

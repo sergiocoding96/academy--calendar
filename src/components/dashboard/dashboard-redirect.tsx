@@ -13,7 +13,7 @@ interface DashboardRedirectProps {
 function resolveTarget(role: string | undefined): string {
   if (role === 'coach' || role === 'admin') return '/dashboard/coach'
   if (role === 'player') return '/dashboard/player'
-  // Default to coach dashboard for any unrecognized role
+  // manager, parent, or any unrecognized role: send to coach dashboard
   return '/dashboard/coach'
 }
 

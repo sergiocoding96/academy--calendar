@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getPlayerInjuries, getActiveInjuries } from '../lib/queries'
-import { createInjury, updateInjury, clearInjury, deleteInjury } from '../lib/mutations'
+import { createInjuryAction, updateInjuryAction, clearInjuryAction, deleteInjuryAction } from '../actions'
 import type { Injury, InjuryInsert, InjuryUpdate } from '../types'
 
 interface UseInjuriesOptions {
@@ -62,7 +62,7 @@ export function useInjuries(
     if (!playerId) throw new Error('No player ID provided')
 
     try {
-      const newInjury = await createInjury({ ...data, player_id: playerId })
+      const newInjury = await createInjuryAction({ ...data, player_id: playerId })
       setInjuries(prev => [newInjury, ...prev])
       return newInjury
     } catch (err) {
@@ -72,7 +72,7 @@ export function useInjuries(
 
   const updateInjuryHandler = useCallback(async (injuryId: string, data: InjuryUpdate) => {
     try {
-      const updated = await updateInjury(injuryId, data)
+      const updated = await updateInjuryAction(playerId!, injuryId, data)
       setInjuries(prev =>
         prev.map(injury => injury.id === injuryId ? updated : injury)
       )
@@ -83,7 +83,7 @@ export function useInjuries(
 
   const clearInjuryHandler = useCallback(async (injuryId: string, returnDate: string) => {
     try {
-      await clearInjury(injuryId, returnDate)
+      await clearInjuryAction(playerId!, injuryId, returnDate)
       setInjuries(prev =>
         prev.map(injury =>
           injury.id === injuryId
@@ -98,7 +98,7 @@ export function useInjuries(
 
   const removeInjury = useCallback(async (injuryId: string) => {
     try {
-      await deleteInjury(injuryId)
+      await deleteInjuryAction(playerId!, injuryId)
       setInjuries(prev => prev.filter(injury => injury.id !== injuryId))
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete injury')

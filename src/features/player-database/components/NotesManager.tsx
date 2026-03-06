@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Plus, Trash2, Edit2, Save, X, Bot, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createNote, updateNote, deleteNote, toggleNoteAiContext } from '../lib/mutations'
+import { createNoteAction, updateNoteAction, deleteNoteAction, toggleNoteAiContextAction } from '../actions'
 import type { PlayerNote, PlayerNoteInsert, PlayerNoteUpdate } from '../types'
 
 interface NotesManagerProps {
@@ -289,7 +289,7 @@ export function NotesManager({
           note_text: data.note_text.trim(),
           is_ai_context: data.is_ai_context,
         }
-        await updateNote(editingNote.id, updateData)
+        await updateNoteAction(playerId, editingNote.id, updateData)
       } else {
         const insertData: PlayerNoteInsert = {
           player_id: playerId,
@@ -297,7 +297,7 @@ export function NotesManager({
           note_text: data.note_text.trim(),
           is_ai_context: data.is_ai_context,
         }
-        await createNote(insertData)
+        await createNoteAction(insertData)
       }
       setShowForm(false)
       setEditingNote(null)
@@ -309,7 +309,7 @@ export function NotesManager({
 
   const handleDelete = async (noteId: string) => {
     try {
-      await deleteNote(noteId)
+      await deleteNoteAction(playerId, noteId)
       onNotesChange?.()
     } catch (err) {
       console.error('Failed to delete note:', err)
@@ -319,7 +319,7 @@ export function NotesManager({
 
   const handleToggleAiContext = async (note: PlayerNote) => {
     try {
-      await toggleNoteAiContext(note.id, !note.is_ai_context)
+      await toggleNoteAiContextAction(playerId, note.id, !note.is_ai_context)
       onNotesChange?.()
     } catch (err) {
       console.error('Failed to toggle AI context:', err)

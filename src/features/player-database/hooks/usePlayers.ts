@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getPlayers } from '../lib/queries'
-import { createPlayer } from '../lib/mutations'
+import { createPlayerAction } from '../actions'
 import type { Player, PlayerFilters, PlayerInsert } from '../types'
 
 interface UsePlayersOptions {
@@ -60,7 +60,7 @@ export function usePlayers(
 
   const addPlayer = useCallback(async (data: PlayerInsert): Promise<Player> => {
     try {
-      const newPlayer = await createPlayer(data)
+      const newPlayer = await createPlayerAction(data)
       setPlayers(prev => [...prev, newPlayer].sort((a, b) =>
         a.full_name.localeCompare(b.full_name)
       ))

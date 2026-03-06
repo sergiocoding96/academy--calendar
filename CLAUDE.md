@@ -90,6 +90,8 @@ SUPABASE PROJECT: dhisrdvfocenhfarblxd
 - **Scraping:** Cheerio (static) + Puppeteer/Chromium (dynamic)
 - **Deployment:** Vercel
 
+**Roles and dashboards:** admin/coach → `/dashboard/coach`; player → `/dashboard/player` (requires `player_id` in user_profiles); manager/parent/other → coach dashboard. Tournament agent API: coach and admin only (403 otherwise).
+
 ---
 
 ## 📁 Project Structure
@@ -315,9 +317,9 @@ npx supabase gen types typescript --project-id [ID] > src/types/database.ts
 > Add items here as you discover them
 
 ### Security (from Phase 6 audit)
-- [ ] **CRITICAL**: RLS policies use `USING (true)` - must tighten to verify coach-player assignments
-- [ ] **HIGH**: Guest mode bypasses server-side authorization - limit to read-only demo data
-- [ ] **HIGH**: IDOR in mutations - add ownership verification before update/delete
+- [x] **CRITICAL**: RLS migration added — `20250305000000_rls_tighten_player_tables.sql` (coach/player/admin scoped)
+- [x] **HIGH**: IDOR — server actions guard all player mutations via `canAccessPlayer()`
+- [x] **HIGH**: Guest mode — coach layout allows guest cookie; write APIs require real auth
 - [ ] **MEDIUM**: Add input sanitization for text fields that may contain HTML
 - [ ] **MEDIUM**: Add rate limiting on form submissions
 

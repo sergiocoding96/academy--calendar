@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getPlayer, getPlayerWithDetails } from '../lib/queries'
-import { updatePlayer, deletePlayer, togglePlayerActive } from '../lib/mutations'
+import { updatePlayerAction, deletePlayerAction, togglePlayerActiveAction } from '../actions'
 import type { Player, PlayerWithDetails, PlayerUpdate } from '../types'
 
 interface UsePlayerOptions {
@@ -68,7 +68,7 @@ export function usePlayer(
     if (!playerId) return
 
     try {
-      const updated = await updatePlayer(playerId, data)
+      const updated = await updatePlayerAction(playerId, data)
       if (updated) {
         setPlayer(prev => prev ? { ...prev, ...updated } as Player | PlayerWithDetails : updated)
       }
@@ -81,7 +81,7 @@ export function usePlayer(
     if (!playerId) return
 
     try {
-      await deletePlayer(playerId)
+      await deletePlayerAction(playerId)
       setPlayer(null)
     } catch (err) {
       throw err instanceof Error ? err : new Error('Failed to delete player')
@@ -92,7 +92,7 @@ export function usePlayer(
     if (!playerId) return
 
     try {
-      const updated = await togglePlayerActive(playerId, isActive)
+      const updated = await togglePlayerActiveAction(playerId, isActive)
       if (updated) {
         setPlayer(prev => prev ? { ...prev, ...updated } as Player | PlayerWithDetails : updated)
       }
