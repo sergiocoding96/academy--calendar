@@ -6,13 +6,14 @@ import { MarkAbsentButton } from '@/components/schedule/mark-absent-button'
 
 export default async function PlayerSchedulePage() {
   const profile = await getUserProfile()
-  const supabase = await createClient()
-
   const playerId = profile?.player_id || ''
 
   // Get all sessions for this player with session_players status (for absence)
-  const { data: rows } = playerId
-    ? await supabase
+  let rows: any[] | null = null
+  try {
+    const supabase = await createClient()
+    if (playerId) {
+      const { data } = await supabase
         .from('session_players')
         .select(`
           id,
@@ -31,7 +32,11 @@ export default async function PlayerSchedulePage() {
         `)
         .eq('player_id', playerId)
         .order('session(date)', { ascending: true })
-    : { data: null }
+      rows = data
+    }
+  } catch {
+    // Query failed — show empty state
+  }
 
   // Normalize nested session (PostgREST can return object or single-element array)
   const normalizedRows = (rows as any[] | null)?.map((item: any) => {

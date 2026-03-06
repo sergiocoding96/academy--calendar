@@ -5,32 +5,41 @@ import Link from 'next/link'
 
 export default async function PlayerTournamentsPage() {
   const profile = await getUserProfile()
-  const supabase = await createClient()
-
   const playerId = profile?.player_id || ''
 
-  // Get all tournaments assigned to this player
-  const { data: tournaments } = await supabase
-    .from('tournament_assignments')
-    .select(`
-      tournament:tournaments(
-        id,
-        name,
-        start_date,
-        end_date,
-        location,
-        surface,
-        category
-      )
-    `)
-    .eq('player_id', playerId)
-    .order('tournament(start_date)', { ascending: false }) as { data: any[] | null }
+  let tournaments: any[] | null = null
+  let matchResults: any[] | null = null
 
-  // Get match results for this player
-  const { data: matchResults } = await supabase
-    .from('match_results')
-    .select('tournament_id, result')
-    .eq('player_id', playerId) as { data: any[] | null }
+  try {
+    const supabase = await createClient()
+
+    // Get all tournaments assigned to this player
+    const { data: t } = await supabase
+      .from('tournament_assignments')
+      .select(`
+        tournament:tournaments(
+          id,
+          name,
+          start_date,
+          end_date,
+          location,
+          surface,
+          category
+        )
+      `)
+      .eq('player_id', playerId)
+      .order('tournament(start_date)', { ascending: false })
+    tournaments = t as any[] | null
+
+    // Get match results for this player
+    const { data: m } = await supabase
+      .from('match_results')
+      .select('tournament_id, result')
+      .eq('player_id', playerId)
+    matchResults = m as any[] | null
+  } catch {
+    // Query failed — show empty state
+  }
 
   // Calculate tournament stats
   const getTournamentStats = (tournamentId: string) => {

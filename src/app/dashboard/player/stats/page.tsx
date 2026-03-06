@@ -5,39 +5,52 @@ import Link from 'next/link'
 
 export default async function PlayerStatsPage() {
   const profile = await getUserProfile()
-  const supabase = await createClient()
-
   const playerId = profile?.player_id || ''
 
-  // Get match results for win/loss stats
-  const { data: matchResults } = await supabase
-    .from('match_results')
-    .select('*')
-    .eq('player_id', playerId)
-    .order('match_date', { ascending: false }) as { data: any[] | null }
+  let matchResults: any[] | null = null
+  let sessionRatings: any[] | null = null
+  let goals: any[] | null = null
+  let fitnessLogs: any[] | null = null
 
-  // Get session ratings for training load
-  const { data: sessionRatings } = await supabase
-    .from('session_ratings')
-    .select(`
-      *,
-      session:sessions(date, start_time, end_time, session_type)
-    `)
-    .eq('player_id', playerId)
-    .order('created_at', { ascending: false }) as { data: any[] | null }
+  try {
+    const supabase = await createClient()
 
-  // Get goals for completion rate
-  const { data: goals } = await supabase
-    .from('goals')
-    .select('*')
-    .eq('player_id', playerId) as { data: any[] | null }
+    // Get match results for win/loss stats
+    const r1 = await supabase
+      .from('match_results')
+      .select('*')
+      .eq('player_id', playerId)
+      .order('match_date', { ascending: false })
+    matchResults = r1.data as any[] | null
 
-  // Get fitness logs for load tracking
-  const { data: fitnessLogs } = await supabase
-    .from('fitness_logs')
-    .select('*')
-    .eq('player_id', playerId)
-    .order('log_date', { ascending: false }) as { data: any[] | null }
+    // Get session ratings for training load
+    const r2 = await supabase
+      .from('session_ratings')
+      .select(`
+        *,
+        session:sessions(date, start_time, end_time, session_type)
+      `)
+      .eq('player_id', playerId)
+      .order('created_at', { ascending: false })
+    sessionRatings = r2.data as any[] | null
+
+    // Get goals for completion rate
+    const r3 = await supabase
+      .from('goals')
+      .select('*')
+      .eq('player_id', playerId)
+    goals = r3.data as any[] | null
+
+    // Get fitness logs for load tracking
+    const r4 = await supabase
+      .from('fitness_logs')
+      .select('*')
+      .eq('player_id', playerId)
+      .order('log_date', { ascending: false })
+    fitnessLogs = r4.data as any[] | null
+  } catch {
+    // Query failed — show empty state
+  }
 
   // Calculate stats
   const wins = matchResults?.filter(m => m.result === 'win').length || 0
