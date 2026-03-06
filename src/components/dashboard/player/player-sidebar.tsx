@@ -34,8 +34,9 @@ export function PlayerSidebar() {
   const router = useRouter()
   const { profile, signOut } = useAuth()
 
-  const handleSignOut = async () => {
-    await signOut()
+  const handleSignOut = () => {
+    // Don't await — signOut clears state instantly, router navigates immediately
+    signOut()
     router.push('/login')
   }
 

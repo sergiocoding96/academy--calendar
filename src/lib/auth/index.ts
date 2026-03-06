@@ -6,35 +6,43 @@ import type { UserProfile, UserRole } from '@/types/database'
 // cache() deduplicates calls within a single server request, so layout + page
 // don't each make their own getUser() / profile roundtrips.
 export const getUser = cache(async () => {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
 
-  if (error || !user) {
+    if (error || !user) {
+      return null
+    }
+
+    return user
+  } catch {
     return null
   }
-
-  return user
 })
 
 export const getUserProfile = cache(async (): Promise<UserProfile | null> => {
-  const user = await getUser()
+  try {
+    const user = await getUser()
 
-  if (!user) {
+    if (!user) {
+      return null
+    }
+
+    const supabase = await createClient()
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profileError || !profile) {
+      return null
+    }
+
+    return profile as UserProfile
+  } catch {
     return null
   }
-
-  const supabase = await createClient()
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (profileError || !profile) {
-    return null
-  }
-
-  return profile as UserProfile
 })
 
 /**

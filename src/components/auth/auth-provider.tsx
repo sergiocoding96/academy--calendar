@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { UserProfile } from '@/types/database'
@@ -38,6 +39,7 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initialSessionResolved = useRef(false)
   // Prevent the auth listener from interfering after sign-out
   const signingOutRef = useRef(false)
+  // Track whether user was ever authenticated (to detect session expiry)
+  const wasAuthenticatedRef = useRef(false)
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -61,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (!error && data) {
+        wasAuthenticatedRef.current = true
         setProfile(data)
       } else if (error) {
         // Auth error (e.g. expired JWT) — don't silently leave profile as stale
@@ -178,6 +183,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(currentUser.id)
         } else {
           setProfile(null)
+          // Session lost while user was previously authenticated → redirect
+          if (wasAuthenticatedRef.current && event === 'SIGNED_OUT') {
+            wasAuthenticatedRef.current = false
+            router.push('/login')
+          }
         }
 
         setLoading(false)
@@ -189,6 +199,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Periodic session health check — detect expired tokens and redirect to login
+  useEffect(() => {
+    if (isGuestRef.current || signingOutRef.current || loading) return
+
+    const interval = setInterval(async () => {
+      if (isGuestRef.current || signingOutRef.current) return
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (!currentUser && wasAuthenticatedRef.current) {
+          // Session expired — redirect to login
+          wasAuthenticatedRef.current = false
+          setUser(null)
+          setProfile(null)
+          router.push('/login')
+        }
+      } catch {
+        // Network error — don't redirect, just wait for next check
+      }
+    }, 60_000) // Check every 60 seconds
+
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, isGuest, signOut, refreshProfile, signInAsGuest }}>
