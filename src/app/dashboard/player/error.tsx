@@ -23,7 +23,7 @@ export default function PlayerDashboardError({
         </div>
         <h2 className="text-lg font-bold text-stone-800 mb-2">Failed to load your dashboard</h2>
         <p className="text-stone-500 text-sm mb-6">
-          {error.message || 'Could not retrieve your training data. This may be a temporary issue.'}
+          {error.message || 'Could not load this page. This may be a temporary issue—try again or return to the dashboard.'}
         </p>
         <div className="flex gap-3">
           <button
