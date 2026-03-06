@@ -162,6 +162,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
+
+        // A new sign-in resets the signing-out guard so the listener works again
+        if (event === 'SIGNED_IN') {
+          signingOutRef.current = false
+        }
+
         if (signingOutRef.current) return
         // Skip INITIAL_SESSION event — already handled by initSession above
         if (event === 'INITIAL_SESSION' && !initialSessionResolved.current) return
