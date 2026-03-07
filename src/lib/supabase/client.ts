@@ -8,15 +8,6 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placehol
 export function createClient() {
   return createBrowserClient<Database>(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY,
-    {
-      auth: {
-        // Use Web Locks API to coordinate token refresh across tabs.
-        // Without this, two tabs can race to refresh the same token —
-        // one succeeds and invalidates the refresh token before the
-        // other finishes, causing auth failures and infinite loops.
-        lock: 'navigator',
-      },
-    }
+    SUPABASE_ANON_KEY
   )
 }

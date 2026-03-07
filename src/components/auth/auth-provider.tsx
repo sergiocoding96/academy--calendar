@@ -95,12 +95,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       await supabase.auth.signOut({ scope: 'local' })
     }
-    // State will be cleared by onAuthStateChange SIGNED_OUT event,
-    // but clear immediately for guest mode and as a safety net
     setUser(null)
     setProfile(null)
     setLoading(false)
   }, [supabase])
+
+  // Sync auth state when this tab becomes visible again.
+  // Prevents stale state after another tab signed out or refreshed tokens.
+  useEffect(() => {
+    if (isGuestRef.current) return
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return
+      if (isGuestRef.current) return
+
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (currentUser) {
+          setUser(currentUser)
+          await fetchProfile(currentUser.id)
+        } else {
+          setUser(null)
+          setProfile(null)
+        }
+      } catch {
+        // Network error — keep current state
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [supabase, fetchProfile])
 
   useEffect(() => {
     // Check for guest session first
@@ -112,11 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Single source of truth: onAuthStateChange handles ALL auth state transitions
-    // including the initial session (INITIAL_SESSION event).
+    // onAuthStateChange handles all auth state transitions including initial session.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
+
+        // In background tabs, only handle sign-out (to clear state).
+        // The visibilitychange handler will re-sync when the tab is focused.
+        if (document.visibilityState !== 'visible' && event !== 'SIGNED_OUT') {
+          return
+        }
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -129,7 +159,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setLoading(false)
 
-        // Redirect to login on explicit sign-out
         if (event === 'SIGNED_OUT') {
           router.push('/login')
         }
