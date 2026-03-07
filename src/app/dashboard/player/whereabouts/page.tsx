@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { Whereabouts } from '@/features/player-database/types'
 import { PlayerWhereaboutsClient } from './whereabouts-client'
 
+export const dynamic = 'force-dynamic'
+
 /** Ensure data is JSON-serializable when passing from Server to Client (avoids render errors). */
 function serializableWhereabouts(value: unknown): unknown[] {
   if (!Array.isArray(value)) return []

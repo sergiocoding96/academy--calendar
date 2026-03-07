@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { TrainingLoad } from '@/features/player-database/types'
 import { PlayerTrainingClient } from './training-client'
 
+export const dynamic = 'force-dynamic'
+
 /** Ensure data is JSON-serializable when passing from Server to Client (avoids render errors). */
 function serializableLoads(value: unknown): unknown[] {
   if (!Array.isArray(value)) return []
