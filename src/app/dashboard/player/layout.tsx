@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { PlayerSidebar } from '@/components/dashboard/player/player-sidebar'
 import { requireRole } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 function isRedirectError(err: unknown): boolean {
   if (err && typeof err === 'object' && 'digest' in err) {
     const d = (err as { digest?: string }).digest
