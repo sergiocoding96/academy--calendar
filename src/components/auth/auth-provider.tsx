@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isGuestRef = useRef(false)
   const supabaseRef = useRef(createClient())
   const supabase = supabaseRef.current
+  // Track whether sign-out was explicitly requested by the user in THIS tab
+  const userSignedOutRef = useRef(false)
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    userSignedOutRef.current = true
     if (isGuestRef.current) {
       isGuestRef.current = false
       setIsGuest(false)
@@ -101,22 +104,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   // Sync auth state when this tab becomes visible again.
-  // Prevents stale state after another tab signed out or refreshed tokens.
   useEffect(() => {
-    if (isGuestRef.current) return
-
     const handleVisibilityChange = async () => {
       if (document.visibilityState !== 'visible') return
-      if (isGuestRef.current) return
+      if (isGuestRef.current || userSignedOutRef.current) return
 
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const currentUser = session?.user ?? null
         if (currentUser) {
           setUser(currentUser)
           await fetchProfile(currentUser.id)
         } else {
+          // No session when tab regains focus — another tab may have signed out
           setUser(null)
           setProfile(null)
+          router.push('/login')
         }
       } catch {
         // Network error — keep current state
@@ -125,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [supabase, fetchProfile])
+  }, [supabase, fetchProfile, router])
 
   useEffect(() => {
     // Check for guest session first
@@ -137,15 +140,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // onAuthStateChange handles all auth state transitions including initial session.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
 
-        // In background tabs, only handle sign-out (to clear state).
-        // The visibilitychange handler will re-sync when the tab is focused.
-        if (document.visibilityState !== 'visible' && event !== 'SIGNED_OUT') {
-          return
+        // SIGNED_OUT from a failed token refresh (race with middleware/other tab).
+        // Instead of clearing state immediately, re-read cookies — the middleware
+        // or the other tab may have already written fresh tokens there.
+        if (event === 'SIGNED_OUT' && !userSignedOutRef.current) {
+          try {
+            const { data: { session: recovered } } = await supabase.auth.getSession()
+            if (recovered?.user) {
+              // Session recovered from cookies — another tab refreshed successfully.
+              setUser(recovered.user)
+              await fetchProfile(recovered.user.id)
+              setLoading(false)
+              return
+            }
+          } catch {
+            // Recovery failed — fall through to clear state
+          }
         }
 
         const currentUser = session?.user ?? null
@@ -159,7 +173,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setLoading(false)
 
+        // Only redirect on user-initiated sign-out or confirmed session loss
         if (event === 'SIGNED_OUT') {
+          userSignedOutRef.current = false
           router.push('/login')
         }
       }
