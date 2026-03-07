@@ -8,6 +8,14 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placehol
 export function createClient() {
   return createBrowserClient<Database>(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_ANON_KEY,
+    {
+      auth: {
+        // Disabled here — AuthProvider manually calls startAutoRefresh() only
+        // in the visible tab. This prevents two tabs from racing to consume
+        // the same single-use refresh token.
+        autoRefreshToken: false,
+      },
+    }
   )
 }

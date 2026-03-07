@@ -103,26 +103,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [supabase])
 
-  // Sync auth state when this tab becomes visible again.
+  // Control auto-refresh based on tab visibility.
+  // Only the visible tab refreshes tokens — prevents two tabs racing to
+  // consume the same single-use refresh token.
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState !== 'visible') return
-      if (isGuestRef.current || userSignedOutRef.current) return
+    if (isGuestRef.current) return
 
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const currentUser = session?.user ?? null
-        if (currentUser) {
-          setUser(currentUser)
-          await fetchProfile(currentUser.id)
-        } else {
-          // No session when tab regains focus — another tab may have signed out
-          setUser(null)
-          setProfile(null)
-          router.push('/login')
+    const handleVisibilityChange = async () => {
+      if (isGuestRef.current) return
+
+      if (document.visibilityState === 'visible') {
+        // Tab gained focus — start auto-refresh and re-sync state from cookies
+        supabase.auth.startAutoRefresh()
+
+        if (userSignedOutRef.current) return
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          const currentUser = session?.user ?? null
+          if (currentUser) {
+            setUser(currentUser)
+            await fetchProfile(currentUser.id)
+          } else {
+            setUser(null)
+            setProfile(null)
+            router.push('/login')
+          }
+        } catch {
+          // Network error — keep current state
         }
-      } catch {
-        // Network error — keep current state
+      } else {
+        // Tab lost focus — stop auto-refresh so it can't race with other tabs
+        supabase.auth.stopAutoRefresh()
       }
     }
 
@@ -140,27 +151,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // Start auto-refresh only if this is the visible tab
+    if (document.visibilityState === 'visible') {
+      supabase.auth.startAutoRefresh()
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
-
-        // SIGNED_OUT from a failed token refresh (race with middleware/other tab).
-        // Instead of clearing state immediately, re-read cookies — the middleware
-        // or the other tab may have already written fresh tokens there.
-        if (event === 'SIGNED_OUT' && !userSignedOutRef.current) {
-          try {
-            const { data: { session: recovered } } = await supabase.auth.getSession()
-            if (recovered?.user) {
-              // Session recovered from cookies — another tab refreshed successfully.
-              setUser(recovered.user)
-              await fetchProfile(recovered.user.id)
-              setLoading(false)
-              return
-            }
-          } catch {
-            // Recovery failed — fall through to clear state
-          }
-        }
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -173,7 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setLoading(false)
 
-        // Only redirect on user-initiated sign-out or confirmed session loss
         if (event === 'SIGNED_OUT') {
           userSignedOutRef.current = false
           router.push('/login')
@@ -182,6 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => {
+      supabase.auth.stopAutoRefresh()
       subscription.unsubscribe()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
