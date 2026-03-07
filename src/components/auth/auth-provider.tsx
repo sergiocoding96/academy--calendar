@@ -44,17 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isGuest, setIsGuest] = useState(false)
-  // Ref keeps the auth-state-change listener in sync without re-registering it
   const isGuestRef = useRef(false)
-  // Stable Supabase client — created once, not on every render
   const supabaseRef = useRef(createClient())
   const supabase = supabaseRef.current
-  // Track whether initial session has been resolved to avoid double-fetch
-  const initialSessionResolved = useRef(false)
-  // Prevent the auth listener from interfering after sign-out
-  const signingOutRef = useRef(false)
-  // Track whether user was ever authenticated (to detect session expiry)
-  const wasAuthenticatedRef = useRef(false)
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -65,10 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
 
       if (!error && data) {
-        wasAuthenticatedRef.current = true
         setProfile(data)
-      } else if (error) {
-        // Auth error (e.g. expired JWT) — don't silently leave profile as stale
+      } else {
         setProfile(null)
       }
     } catch {
@@ -88,22 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(GUEST_PROFILE)
     setUser({ id: 'guest-user-id', email: 'guest@sototennis.demo' } as User)
     setLoading(false)
-    // Store guest state in localStorage and cookie (for middleware)
     if (typeof window !== 'undefined') {
       localStorage.setItem('isGuest', 'true')
-      document.cookie = 'isGuest=true; path=/; max-age=86400' // 24 hours
+      document.cookie = 'isGuest=true; path=/; max-age=86400'
     }
   }, [])
 
   const signOut = useCallback(async () => {
-    // Prevent the onAuthStateChange listener from interfering
-    signingOutRef.current = true
-
-    // Clear local state immediately so the UI responds instantly
-    setUser(null)
-    setProfile(null)
-    setLoading(false)
-
     if (isGuestRef.current) {
       isGuestRef.current = false
       setIsGuest(false)
@@ -112,10 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = 'isGuest=; path=/; max-age=0'
       }
     } else {
-      // scope:'local' clears cookies/storage synchronously — no network call,
-      // no race condition with the next sign-in.
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+      await supabase.auth.signOut({ scope: 'local' })
     }
+    // State will be cleared by onAuthStateChange SIGNED_OUT event,
+    // but clear immediately for guest mode and as a safety net
+    setUser(null)
+    setProfile(null)
+    setLoading(false)
   }, [supabase])
 
   useEffect(() => {
@@ -128,60 +112,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Get initial session
-    const initSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-
-        if (error?.code === 'refresh_token_not_found' || error?.message?.toLowerCase().includes('refresh token')) {
-          try {
-            await supabase.auth.signOut()
-          } catch {
-            // ignore
-          }
-          setUser(null)
-          setProfile(null)
-        } else {
-          const currentUser = session?.user ?? null
-          setUser(currentUser)
-          if (currentUser) {
-            await fetchProfile(currentUser.id)
-          }
-        }
-      } catch {
-        setUser(null)
-        setProfile(null)
-      } finally {
-        initialSessionResolved.current = true
-        setLoading(false)
-      }
-    }
-
-    initSession()
-
-    // Listen for auth changes (e.g. sign in/out, token refresh)
+    // Single source of truth: onAuthStateChange handles ALL auth state transitions
+    // including the initial session (INITIAL_SESSION event).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
-
-        // A new sign-in resets the signing-out guard so the listener works again
-        if (event === 'SIGNED_IN') {
-          signingOutRef.current = false
-        }
-
-        if (signingOutRef.current) return
-        // Skip INITIAL_SESSION event — already handled by initSession above
-        if (event === 'INITIAL_SESSION' && !initialSessionResolved.current) return
-
-        // TOKEN_REFRESHED with no session means the refresh token is invalid.
-        // Clear state and sign out to prevent an infinite retry loop.
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          try { await supabase.auth.signOut() } catch { /* ignore */ }
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-          return
-        }
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
@@ -190,14 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(currentUser.id)
         } else {
           setProfile(null)
-          // Session lost while user was previously authenticated → redirect
-          if (wasAuthenticatedRef.current && event === 'SIGNED_OUT') {
-            wasAuthenticatedRef.current = false
-            router.push('/login')
-          }
         }
 
         setLoading(false)
+
+        // Redirect to login on explicit sign-out
+        if (event === 'SIGNED_OUT') {
+          router.push('/login')
+        }
       }
     )
 
@@ -206,30 +141,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Periodic session health check — detect expired tokens and redirect to login
-  useEffect(() => {
-    if (isGuestRef.current || signingOutRef.current || loading) return
-
-    const interval = setInterval(async () => {
-      if (isGuestRef.current || signingOutRef.current) return
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
-        if (!currentUser && wasAuthenticatedRef.current) {
-          // Session expired — redirect to login
-          wasAuthenticatedRef.current = false
-          setUser(null)
-          setProfile(null)
-          router.push('/login')
-        }
-      } catch {
-        // Network error — don't redirect, just wait for next check
-      }
-    }, 60_000) // Check every 60 seconds
-
-    return () => clearInterval(interval)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading])
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, isGuest, signOut, refreshProfile, signInAsGuest }}>
