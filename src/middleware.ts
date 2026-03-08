@@ -54,9 +54,17 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Refresh session if expired
-    const { data } = await supabase.auth.getUser()
-    user = data.user
+    // Refresh session if expired — wrapped in try/catch because supabase.auth.getUser()
+    // can throw AuthApiError ("Invalid Refresh Token: Refresh Token Not Found") when
+    // the browser has an expired/invalid refresh token. Without this, the middleware
+    // crashes the entire request with a 500.
+    try {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    } catch {
+      // Invalid/expired token — treat as unauthenticated; middleware will redirect to login below
+      user = null
+    }
   }
 
   // Allow guest users to access protected routes
