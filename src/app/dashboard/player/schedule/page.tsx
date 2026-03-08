@@ -38,14 +38,18 @@ export default async function PlayerSchedulePage() {
     // Query failed — show empty state
   }
 
-  // Normalize nested session (PostgREST can return object or single-element array)
+  // Normalize nested session, court, coach (PostgREST can return arrays)
   const normalizedRows = (rows as any[] | null)?.map((item: any) => {
-    const session = item.session == null ? null : Array.isArray(item.session) ? item.session[0] : item.session
+    let session = item.session == null ? null : Array.isArray(item.session) ? item.session[0] : item.session
+    if (session) {
+      if (Array.isArray(session.court)) session = { ...session, court: session.court[0] ?? null }
+      if (Array.isArray(session.coach)) session = { ...session, coach: session.coach[0] ?? null }
+    }
     return { ...item, session }
   })
 
-  // Group by date; each item has { session, status, absent_reason }
-  const groupedSessions: { [key: string]: { session: any; status: string; absent_reason: string | null }[] } = {}
+  // Group by date; each item has { session, status, absent_reason, isCancelled }
+  const groupedSessions: { [key: string]: { session: any; status: string; absent_reason: string | null; isCancelled: boolean }[] } = {}
   normalizedRows?.forEach((item: any) => {
     if (item.session?.date) {
       const date = item.session.date
@@ -56,6 +60,7 @@ export default async function PlayerSchedulePage() {
         session: item.session,
         status: item.status ?? 'confirmed',
         absent_reason: item.absent_reason ?? null,
+        isCancelled: !!item.session.notes?.includes('[Cancelled]'),
       })
     }
   })
@@ -146,34 +151,35 @@ export default async function PlayerSchedulePage() {
 
               {/* Sessions */}
               <div className="divide-y divide-stone-100">
-                {groupedSessions[date].map((item: { session: any; status: string; absent_reason: string | null }, index: number) => {
+                {groupedSessions[date].map((item: { session: any; status: string; absent_reason: string | null; isCancelled: boolean }) => {
                   const session = item.session
                   const isAbsent = item.status === 'absent'
                   const isPastSession = isPast(session.date)
+                  const isCancelled = item.isCancelled
                   const sessionLabel = `${formatTime(session.start_time)} ${session.session_type ?? 'Training'}`
                   return (
                     <div
                       key={session.id}
-                      className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
+                      className={`flex items-center gap-4 p-4 transition-colors ${isCancelled ? 'bg-red-50/50 opacity-60' : 'hover:bg-stone-50'}`}
                     >
                       {/* Time */}
                       <div className="w-24 text-center">
-                        <p className="font-medium text-stone-800">{formatTime(session.start_time)}</p>
-                        <p className="text-xs text-stone-400">{formatTime(session.end_time)}</p>
+                        <p className={`font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-stone-800'}`}>{formatTime(session.start_time)}</p>
+                        <p className={`text-xs ${isCancelled ? 'text-red-300' : 'text-stone-400'}`}>{formatTime(session.end_time)}</p>
                       </div>
 
                       {/* Session Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getSessionTypeColor(session.session_type)}`}>
-                            {session.session_type?.replace('_', ' ') || 'Training'}
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${isCancelled ? 'bg-red-100 text-red-700' : getSessionTypeColor(session.session_type)}`}>
+                            {isCancelled ? 'Cancelled' : (session.session_type?.replace('_', ' ') || 'Training')}
                           </span>
-                          {isAbsent && (
+                          {!isCancelled && isAbsent && (
                             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                               Absent
                             </span>
                           )}
-                          {isAbsent && item.absent_reason && (
+                          {!isCancelled && isAbsent && item.absent_reason && (
                             <span className="text-xs text-stone-500 truncate" title={item.absent_reason}>
                               — {item.absent_reason}
                             </span>
@@ -206,15 +212,17 @@ export default async function PlayerSchedulePage() {
                             })()}
                           </span>
                         </div>
-                        {!isAbsent && !isPastSession && (
+                        {!isCancelled && !isAbsent && !isPastSession && (
                           <MarkAbsentButton sessionId={session.id} sessionLabel={sessionLabel} />
                         )}
-                        <Link
-                          href={`/dashboard/player/sessions/${session.id}`}
-                          className="text-sm text-red-600 hover:text-red-700 font-medium"
-                        >
-                          View
-                        </Link>
+                        {!isCancelled && (
+                          <Link
+                            href={`/dashboard/player/sessions/${session.id}`}
+                            className="text-sm text-red-600 hover:text-red-700 font-medium"
+                          >
+                            View
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )

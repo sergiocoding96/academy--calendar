@@ -51,9 +51,14 @@ export default async function PlayerDashboardPage() {
       ])
 
       // Filter upcoming sessions in JS (workaround for missing relation filter support)
+      // Exclude cancelled sessions and normalize PostgREST array joins
       const allSessions = (sessionsRes.data as any[] | null) ?? []
       upcomingSessions = allSessions
-        .filter((item) => item.session?.date >= today)
+        .map((item) => {
+          const s = Array.isArray(item.session) ? item.session[0] : item.session
+          return { ...item, session: s }
+        })
+        .filter((item) => item.session?.date >= today && !item.session?.notes?.includes('[Cancelled]'))
         .sort((a, b) => (a.session?.date ?? '').localeCompare(b.session?.date ?? ''))
         .slice(0, 5)
       activeGoalsCount = goalsRes.count ?? 0
@@ -185,7 +190,7 @@ export default async function PlayerDashboardPage() {
                     </p>
                   </div>
                   <span className="text-xs text-stone-400">
-                    {item.session?.court?.name}
+                    {(Array.isArray(item.session?.court) ? item.session.court[0] : item.session?.court)?.name}
                   </span>
                 </div>
               ))}
