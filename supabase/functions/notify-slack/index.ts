@@ -18,25 +18,77 @@ function formatTime(time: string | undefined): string {
   return `${h12}:${m || '00'} ${ampm}`
 }
 
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '?'
+  try {
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
+
 function buildMessage(payload: Record<string, unknown>): string {
   const event = (payload.event as string) ?? 'unknown'
+
   if (event === 'absence') {
-    const player = (payload.player_name as string) ?? 'Player'
-    const date = (payload.session_date as string) ?? '?'
+    const player = (payload.player_name as string) ?? 'A player'
+    const date = formatDate(payload.session_date as string)
     const time = formatTime(payload.session_time as string)
-    const reason = (payload.reason as string) ?? ''
-    return `*Absence:* ${player} won't attend ${date} ${time} — ${reason}`
+    const reason = (payload.reason as string) ?? 'No reason given'
+    const sessionType = ((payload.session_type as string) ?? 'session').replace(/_/g, ' ')
+    const court = payload.court_name as string | undefined
+
+    let msg = `:no_entry_sign: *Absence Notification*\n`
+    msg += `> *${player}* won't attend their *${sessionType}* session\n`
+    msg += `> :calendar: ${date}  :clock3: ${time}`
+    if (court) msg += `  :round_pushpin: ${court}`
+    msg += `\n> :speech_balloon: _"${reason}"_`
+    return msg
   }
+
   if (event === 'schedule_change_reviewed') {
     const status = (payload.status as string) ?? 'reviewed'
     const changeType = ((payload.change_type as string) ?? 'change').replace(/_/g, ' ')
     const reason = (payload.reason as string) ?? ''
     const rejectReason = payload.reject_reason as string | undefined
-    if (status === 'rejected' && rejectReason) {
-      return `*Schedule change rejected:* ${changeType}. Request reason: ${reason}. Reject reason: ${rejectReason}`
+    const reviewerName = (payload.reviewer_name as string) ?? 'A coach'
+    const proposerName = (payload.proposer_name as string) ?? undefined
+    const sessionDate = formatDate(payload.session_date as string)
+    const sessionTime = formatTime(payload.session_time as string)
+    const sessionType = ((payload.session_type as string) ?? '').replace(/_/g, ' ')
+    const courtName = payload.court_name as string | undefined
+    const coachName = payload.coach_name as string | undefined
+    const playerName = payload.player_name as string | undefined
+
+    const statusEmoji = status === 'rejected' ? ':x:' : ':white_check_mark:'
+    const statusLabel = status === 'modified_approved' ? 'Modified & Approved' : status.charAt(0).toUpperCase() + status.slice(1)
+
+    let msg = `${statusEmoji} *Schedule Change ${statusLabel}*\n`
+    msg += `> *Type:* ${changeType}\n`
+
+    if (sessionType || sessionDate !== '?') {
+      msg += `> :calendar: ${sessionDate}  :clock3: ${sessionTime}`
+      if (sessionType) msg += `  •  ${sessionType}`
+      if (courtName) msg += `  •  ${courtName}`
+      msg += `\n`
     }
-    return `*Schedule change ${status}:* ${changeType}. Reason: ${reason}`
+
+    if (coachName) msg += `> :bust_in_silhouette: *Coach:* ${coachName}\n`
+    if (playerName) msg += `> :runner: *Player:* ${playerName}\n`
+
+    msg += `> :speech_balloon: *Reason:* _"${reason}"_\n`
+
+    if (status === 'rejected' && rejectReason) {
+      msg += `> :no_entry: *Reject reason:* _"${rejectReason}"_\n`
+    }
+
+    msg += `> :pencil2: *Reviewed by:* ${reviewerName}`
+    if (proposerName) msg += `  •  *Proposed by:* ${proposerName}`
+
+    return msg
   }
+
   return `Event: ${event}`
 }
 

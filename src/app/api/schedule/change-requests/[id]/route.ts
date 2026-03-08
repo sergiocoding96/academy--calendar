@@ -173,7 +173,7 @@ export async function PATCH(
   const supabase = await createClient()
   const { data: req, error: fetchError } = await (supabase as any)
     .from('schedule_change_requests')
-    .select('id, change_type, target_session_id, status, reason, proposed_payload, approved_payload')
+    .select('id, change_type, target_session_id, status, reason, proposed_payload, approved_payload, proposer_id')
     .eq('id', id)
     .single()
 
@@ -186,6 +186,50 @@ export async function PATCH(
 
   const now = new Date().toISOString()
   const payloadToApply = action === 'modify_approve' ? modified_payload ?? req.proposed_payload : req.proposed_payload
+
+  // Fetch session details and names for Slack notification
+  let sessionInfo: { date?: string; start_time?: string; session_type?: string; court_name?: string; coach_name?: string } = {}
+  let proposerName: string | undefined
+  let playerName: string | undefined
+  try {
+    if (req.target_session_id) {
+      const { data: sess } = await (supabase as any)
+        .from('sessions')
+        .select('date, start_time, session_type, court:courts(name), coach:coaches(name)')
+        .eq('id', req.target_session_id)
+        .single()
+      if (sess) {
+        const court = Array.isArray(sess.court) ? sess.court[0] : sess.court
+        const coach = Array.isArray(sess.coach) ? sess.coach[0] : sess.coach
+        sessionInfo = {
+          date: sess.date,
+          start_time: sess.start_time,
+          session_type: sess.session_type,
+          court_name: court?.name,
+          coach_name: coach?.name,
+        }
+      }
+    }
+    if (req.proposer_id) {
+      const { data: proposer } = await (supabase as any)
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', req.proposer_id)
+        .single()
+      proposerName = proposer?.full_name
+    }
+    const playerIdInPayload = req.proposed_payload?.player_id as string | undefined
+    if (playerIdInPayload) {
+      const { data: pl } = await (supabase as any)
+        .from('players')
+        .select('full_name, name')
+        .eq('id', playerIdInPayload)
+        .single()
+      playerName = pl?.full_name ?? pl?.name
+    }
+  } catch {
+    // Non-critical — Slack will just have fewer details
+  }
 
   if (action === 'reject') {
     await (supabase as any)
@@ -211,10 +255,16 @@ export async function PATCH(
           request_id: id,
           status: 'rejected',
           change_type: req.change_type,
-          target_session_id: req.target_session_id,
           reason: req.reason,
           reject_reason: reject_reason?.trim() || null,
-          approved_by: profile.id,
+          reviewer_name: profile.full_name ?? 'A coach',
+          proposer_name: proposerName,
+          player_name: playerName,
+          session_date: sessionInfo.date,
+          session_time: sessionInfo.start_time,
+          session_type: sessionInfo.session_type,
+          court_name: sessionInfo.court_name,
+          coach_name: sessionInfo.coach_name,
         },
       })
       .catch(() => {})
@@ -256,9 +306,15 @@ export async function PATCH(
         request_id: id,
         status: action === 'modify_approve' ? 'modified_approved' : 'approved',
         change_type: req.change_type,
-        target_session_id: req.target_session_id,
         reason: req.reason,
-        approved_by: profile.id,
+        reviewer_name: profile.full_name ?? 'A coach',
+        proposer_name: proposerName,
+        player_name: playerName,
+        session_date: sessionInfo.date,
+        session_time: sessionInfo.start_time,
+        session_type: sessionInfo.session_type,
+        court_name: sessionInfo.court_name,
+        coach_name: sessionInfo.coach_name,
       },
     })
     .catch(() => {})

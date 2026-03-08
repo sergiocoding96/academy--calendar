@@ -62,7 +62,7 @@ export async function POST(
 
   const { data: session } = await (supabase as any)
     .from('sessions')
-    .select('date, start_time, end_time, session_type')
+    .select('date, start_time, end_time, session_type, court:courts(name)')
     .eq('id', sessionId)
     .single()
   const { data: player } = await (supabase as any)
@@ -70,16 +70,18 @@ export async function POST(
     .select('full_name')
     .eq('id', profile.player_id)
     .single()
+  const court = Array.isArray(session?.court) ? session.court[0] : session?.court
   supabase.functions
     .invoke('notify-slack', {
       body: {
         event: 'absence',
         session_id: sessionId,
         player_id: profile.player_id,
-        player_name: player?.full_name ?? 'Player',
+        player_name: player?.full_name ?? 'A player',
         session_date: session?.date,
         session_time: session?.start_time,
         session_type: session?.session_type,
+        court_name: court?.name ?? undefined,
         reason,
       },
     })
