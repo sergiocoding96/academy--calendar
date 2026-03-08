@@ -164,7 +164,7 @@ export default async function CoachSessionsPage() {
                         <div className="flex items-center gap-4 text-sm text-stone-500">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
-                            {session.court?.name || 'TBD'}
+                            {(Array.isArray(session.court) ? session.court[0] : session.court)?.name || 'TBD'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Users className="w-4 h-4" />

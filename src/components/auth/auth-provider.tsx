@@ -155,9 +155,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       supabase.auth.startAutoRefresh()
     }
 
+    // Safety net: if onAuthStateChange never fires (hidden tab, no session,
+    // or Supabase client initialization delay), resolve loading from cookies
+    // so the UI never gets permanently stuck.
+    const loadingTimeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (!prev) return prev // already resolved
+        // Try to bootstrap from session cookies
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            setUser(session.user)
+            fetchProfile(session.user.id)
+          }
+        }).catch(() => {})
+        return false
+      })
+    }, 2500)
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (isGuestRef.current) return
+        clearTimeout(loadingTimeout)
 
         const currentUser = session?.user ?? null
 
@@ -183,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => {
+      clearTimeout(loadingTimeout)
       supabase.auth.stopAutoRefresh()
       subscription.unsubscribe()
     }

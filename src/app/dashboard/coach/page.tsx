@@ -192,7 +192,7 @@ export default async function CoachDashboardPage() {
                       {isCancelled && <span className="text-xs font-medium text-red-500 ml-2 no-underline inline-block">Cancelled</span>}
                     </p>
                     <p className="text-sm text-stone-500">
-                      {formatTime(session.start_time)} - {formatTime(session.end_time)} • {session.court?.name}
+                      {formatTime(session.start_time)} - {formatTime(session.end_time)} • {(Array.isArray(session.court) ? session.court[0] : session.court)?.name || 'TBD'}
                     </p>
                   </div>
                   {!isCancelled && (
