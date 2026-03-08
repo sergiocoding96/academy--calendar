@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Edit3, Send } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { formatTime } from '@/lib/utils'
 
@@ -49,6 +49,8 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [sendingDigest, setSendingDigest] = useState(false)
+  const [digestResult, setDigestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   const [addPlayerOpen, setAddPlayerOpen] = useState(false)
   const [addPlayerSession, setAddPlayerSession] = useState<Session | null>(null)
@@ -157,6 +159,25 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
     }
   }
 
+  const sendDailyDigest = async () => {
+    setSendingDigest(true)
+    setDigestResult(null)
+    try {
+      const res = await fetch('/api/schedule/daily-digest')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDigestResult({ ok: false, message: data.error || 'Failed to send digest' })
+        return
+      }
+      setDigestResult({ ok: true, message: `Sent! ${data.session_count} session${data.session_count === 1 ? '' : 's'} for ${data.date}` })
+      setTimeout(() => setDigestResult(null), 5000)
+    } catch {
+      setDigestResult({ ok: false, message: 'Network error' })
+    } finally {
+      setSendingDigest(false)
+    }
+  }
+
   const submitPropose = async () => {
     if (!selectedSession?.id || !reason.trim()) {
       setError('Reason is required')
@@ -236,6 +257,15 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
           <p className="text-sm text-stone-500">{sessions.length} sessions this week</p>
           <button
             type="button"
+            onClick={sendDailyDigest}
+            disabled={sendingDigest}
+            className="flex items-center gap-1.5 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 disabled:opacity-50 text-sm font-medium"
+          >
+            <Send className="w-4 h-4" />
+            {sendingDigest ? 'Sending...' : 'Send daily digest'}
+          </button>
+          <button
+            type="button"
             onClick={generateWeek}
             disabled={generating}
             className="px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-700 disabled:opacity-50 text-sm font-medium"
@@ -245,6 +275,9 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
         </div>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {digestResult && (
+        <p className={`text-sm ${digestResult.ok ? 'text-green-600' : 'text-red-600'}`}>{digestResult.message}</p>
+      )}
 
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
         <div className="grid grid-cols-7 divide-x divide-stone-200">
