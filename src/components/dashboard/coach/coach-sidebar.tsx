@@ -22,7 +22,7 @@ const navItems = [
   { href: '/dashboard/coach/sessions', label: 'Sessions', icon: ClipboardList },
   { href: '/dashboard/coach/schedule', label: 'Schedule', icon: Calendar },
   { href: '/dashboard/coach/approvals', label: 'Approvals', icon: ClipboardCheck },
-  { href: '/tournaments', label: 'Tournaments', icon: Trophy },
+  { href: '/dashboard/coach/tournaments', label: 'Tournaments', icon: Trophy },
 ]
 
 export function CoachSidebar() {

@@ -24,7 +24,7 @@ export default async function CoachDashboardLayout({
     }
 
     return (
-      <div className="flex min-h-screen bg-stone-50">
+      <div className="flex h-screen bg-stone-50 overflow-hidden">
         <CoachSidebar />
         <main className="flex-1 overflow-y-auto">
           {children}

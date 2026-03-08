@@ -146,7 +146,7 @@ export default async function CoachDashboardPage() {
         </div>
 
         <Link
-          href="/tournaments"
+          href="/dashboard/coach/tournaments"
           className="bg-white p-6 rounded-xl border border-stone-200 hover:border-red-200 hover:shadow-md transition-all"
         >
           <div className="flex items-center gap-4">
@@ -264,7 +264,7 @@ export default async function CoachDashboardPage() {
               <span className="text-sm font-medium text-stone-700">Player Profiles</span>
             </Link>
             <Link
-              href="/tournaments"
+              href="/dashboard/coach/tournaments"
               className="flex flex-col items-center gap-2 p-4 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
             >
               <Trophy className="w-8 h-8 text-amber-600" />

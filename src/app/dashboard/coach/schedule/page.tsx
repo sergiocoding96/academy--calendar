@@ -69,7 +69,7 @@ export default async function CoachSchedulePage() {
   }))
 
   return (
-    <div className="p-8">
+    <div className="p-8 h-full flex flex-col">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">Weekly Schedule</h1>
