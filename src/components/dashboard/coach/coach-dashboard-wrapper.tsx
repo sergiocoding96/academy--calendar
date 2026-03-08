@@ -8,34 +8,16 @@ interface CoachDashboardWrapperProps {
 }
 
 export function CoachDashboardWrapper({ children }: CoachDashboardWrapperProps) {
-  const { isGuest, loading, profile } = useAuth()
+  const { isGuest } = useAuth()
 
-  // Guest check first — show guest view immediately without waiting for auth
+  // Guest check — show guest view immediately
   if (isGuest) {
     return <GuestCoachDashboard />
   }
 
-  // Only show skeleton on first load when we don't have profile yet.
-  // If server already rendered content for an authenticated user, show it immediately.
-  if (loading && !profile) {
-    return (
-      <div className="p-8">
-        <div className="animate-pulse">
-          <div className="h-8 w-64 bg-stone-200 rounded mb-4"></div>
-          <div className="h-4 w-48 bg-stone-200 rounded mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white p-6 rounded-xl border border-stone-200">
-                <div className="h-12 w-12 bg-stone-200 rounded-lg mb-4"></div>
-                <div className="h-4 w-24 bg-stone-200 rounded mb-2"></div>
-                <div className="h-6 w-12 bg-stone-200 rounded"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // Always render children immediately. The server layout already verified
+  // auth via requireRole(), so no loading skeleton needed here.
+  // Showing a skeleton replaces the server-rendered HTML on every
+  // page load/refresh, causing a flash and hiding the coach name.
   return <>{children}</>
 }
