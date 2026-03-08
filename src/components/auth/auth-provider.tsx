@@ -60,11 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!error && data) {
         setProfile(data)
-      } else {
-        setProfile(null)
       }
+      // On error, keep existing profile (stale is better than null).
+      // Profile is only cleared on explicit sign-out.
     } catch {
-      setProfile(null)
+      // Network/transient error — keep existing profile
     }
   }, [supabase])
 
@@ -123,11 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (currentUser) {
             setUser(currentUser)
             await fetchProfile(currentUser.id)
-          } else {
-            setUser(null)
-            setProfile(null)
-            router.push('/login')
           }
+          // If session is null, don't clear state or redirect — it may be
+          // transiently unavailable. The onAuthStateChange SIGNED_OUT event
+          // is the authoritative signal for sign-out.
         } catch {
           // Network error — keep current state
         }
@@ -161,20 +160,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isGuestRef.current) return
 
         const currentUser = session?.user ?? null
-        setUser(currentUser)
-
-        if (currentUser) {
-          await fetchProfile(currentUser.id)
-        } else {
-          setProfile(null)
-        }
-
-        setLoading(false)
 
         if (event === 'SIGNED_OUT') {
+          // Authoritative sign-out — clear everything
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
           userSignedOutRef.current = false
           router.push('/login')
+          return
         }
+
+        if (currentUser) {
+          setUser(currentUser)
+          await fetchProfile(currentUser.id)
+        }
+        // For TOKEN_REFRESHED / INITIAL_SESSION without a user, keep existing
+        // state instead of clearing — prevents flicker on navigation.
+
+        setLoading(false)
       }
     )
 

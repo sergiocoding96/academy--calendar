@@ -32,10 +32,40 @@ export default async function CoachApprovalsPage() {
       `)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
-    pending = (data as any[] | null) || []
+
+    // Normalize PostgREST join shapes — target_session, court, coach may be
+    // arrays instead of objects depending on FK cardinality.
+    pending = ((data as any[] | null) || []).map((row: any) => {
+      let session = row.target_session
+      if (Array.isArray(session)) session = session[0] ?? null
+      if (session) {
+        if (Array.isArray(session.court)) session = { ...session, court: session.court[0] ?? null }
+        if (Array.isArray(session.coach)) session = { ...session, coach: session.coach[0] ?? null }
+      }
+      return { ...row, target_session: session }
+    })
   } catch {
     pending = []
   }
+
+  // Also fetch proposer names for display
+  const proposerIds = [...new Set(pending.map((r: any) => r.proposer_id).filter(Boolean))]
+  const proposerMap: Record<string, string> = {}
+  if (proposerIds.length > 0) {
+    try {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('id, full_name')
+        .in('id', proposerIds)
+      for (const p of (profiles as any[] | null) || []) {
+        if (p.full_name) proposerMap[p.id] = p.full_name
+      }
+    } catch {
+      // non-critical
+    }
+  }
+  // Attach proposer_name to each item
+  pending = pending.map((r: any) => ({ ...r, proposer_name: proposerMap[r.proposer_id] || null }))
 
   return (
     <div className="p-8">

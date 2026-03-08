@@ -14,6 +14,7 @@ type PendingItem = {
   id: string
   created_at: string
   proposer_id: string
+  proposer_name?: string | null
   change_type: string
   target_session_id: string | null
   reason: string
@@ -152,6 +153,10 @@ export function ApprovalQueueClient({ initialPending }: Props) {
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 capitalize">
                 {req.change_type.replace(/_/g, ' ')}
               </span>
+              {req.proposer_name && (
+                <span className="text-xs text-stone-500">by {req.proposer_name}</span>
+              )}
+              <span className="text-xs text-stone-400">{new Date(req.created_at).toLocaleDateString()}</span>
             </div>
             {req.target_session && (
               <div className="flex items-center gap-4 text-sm text-stone-600 mb-2">
@@ -163,8 +168,9 @@ export function ApprovalQueueClient({ initialPending }: Props) {
                   <Clock className="w-4 h-4" />
                   {formatTime(req.target_session.start_time)} – {formatTime(req.target_session.end_time)}
                 </span>
-                <span>{req.target_session.session_type}</span>
+                <span className="capitalize">{req.target_session.session_type?.replace(/_/g, ' ')}</span>
                 {req.target_session.court?.name && <span>{req.target_session.court.name}</span>}
+                {req.target_session.coach?.name && <span className="text-stone-500">Coach: {req.target_session.coach.name}</span>}
               </div>
             )}
             <p className="text-stone-700">{req.reason}</p>
