@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/schedule/daily-digest",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/agent/scrape",
+      "schedule": "0 6 * * 1"
+    }
+  ]
+}
