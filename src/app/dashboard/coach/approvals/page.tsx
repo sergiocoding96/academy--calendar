@@ -7,29 +7,35 @@ export default async function CoachApprovalsPage() {
   const profile = await getUserProfile()
   const supabase = await createClient()
 
-  const { data: pending } = await supabase
-    .from('schedule_change_requests')
-    .select(`
-      id,
-      created_at,
-      proposer_id,
-      change_type,
-      target_session_id,
-      reason,
-      status,
-      proposed_payload,
-      target_session:sessions(
+  let pending: any[] = []
+  try {
+    const { data } = await supabase
+      .from('schedule_change_requests')
+      .select(`
         id,
-        date,
-        start_time,
-        end_time,
-        session_type,
-        court:courts(name),
-        coach:coaches(name)
-      )
-    `)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false }) as { data: any[] | null }
+        created_at,
+        proposer_id,
+        change_type,
+        target_session_id,
+        reason,
+        status,
+        proposed_payload,
+        target_session:sessions(
+          id,
+          date,
+          start_time,
+          end_time,
+          session_type,
+          court:courts(name),
+          coach:coaches(name)
+        )
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    pending = (data as any[] | null) || []
+  } catch {
+    pending = []
+  }
 
   return (
     <div className="p-8">
@@ -46,7 +52,7 @@ export default async function CoachApprovalsPage() {
         </Link>
       </div>
 
-      <ApprovalQueueClient initialPending={pending || []} />
+      <ApprovalQueueClient initialPending={pending} />
     </div>
   )
 }

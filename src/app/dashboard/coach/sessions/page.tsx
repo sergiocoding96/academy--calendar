@@ -9,28 +9,33 @@ export default async function CoachSessionsPage() {
 
   const coachId = profile?.coach_id || ''
 
-  // Get sessions for this coach
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select(`
-      id,
-      date,
-      start_time,
-      end_time,
-      session_type,
-      notes,
-      court:courts(name),
-      session_players(
-        player:players(id, name),
-        session_rating:session_ratings(
-          overall_rating,
-          intensity_level
+  let sessions: any[] | null = null
+  try {
+    const { data } = await supabase
+      .from('sessions')
+      .select(`
+        id,
+        date,
+        start_time,
+        end_time,
+        session_type,
+        notes,
+        court:courts(name),
+        session_players(
+          player:players(id, name),
+          session_rating:session_ratings(
+            overall_rating,
+            intensity_level
+          )
         )
-      )
-    `)
-    .eq('coach_id', coachId)
-    .order('date', { ascending: false })
-    .limit(50) as { data: any[] | null }
+      `)
+      .eq('coach_id', coachId)
+      .order('date', { ascending: false })
+      .limit(50)
+    sessions = data as any[] | null
+  } catch {
+    sessions = null
+  }
 
   // Group sessions by date
   const groupedSessions: { [key: string]: any[] } = {}

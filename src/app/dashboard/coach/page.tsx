@@ -35,53 +35,63 @@ export default async function CoachDashboardPage() {
   weekEnd.setDate(weekEnd.getDate() + 7)
   const weekEndStr = weekEnd.toISOString().split('T')[0]
 
-  // Run all dashboard queries in parallel to reduce load time
-  const [
-    playersCountResult,
-    todaySessionsResult,
-    weekSessionsCountResult,
-    assignedPlayersResult,
-  ] = await Promise.all([
-    supabase
-      .from('players')
-      .select('*', { count: 'exact', head: true })
-      .eq('coach_id', coachId)
-      .eq('is_active', true),
-    supabase
-      .from('sessions')
-      .select(`
-        id,
-        date,
-        start_time,
-        end_time,
-        session_type,
-        court:courts(name),
-        session_players(
-          player:players(id, full_name)
-        )
-      `)
-      .eq('coach_id', coachId)
-      .eq('date', today)
-      .order('start_time', { ascending: true }),
-    supabase
-      .from('sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('coach_id', coachId)
-      .gte('date', today)
-      .lte('date', weekEndStr),
-    supabase
-      .from('players')
-      .select('id, full_name, email')
-      .eq('coach_id', coachId)
-      .eq('is_active', true)
-      .order('full_name', { ascending: true })
-      .limit(5),
-  ])
+  // Run all dashboard queries in parallel — each wrapped so a missing table
+  // doesn't crash the entire dashboard
+  let playersCount = 0
+  let todaySessions: any[] = []
+  let weekSessionsCount = 0
+  let assignedPlayers: any[] = []
 
-  const playersCount = playersCountResult.count ?? 0
-  const todaySessions = (todaySessionsResult.data as any[] | null) ?? []
-  const weekSessionsCount = weekSessionsCountResult.count ?? 0
-  const assignedPlayers = (assignedPlayersResult.data as any[] | null) ?? []
+  try {
+    const [
+      playersCountResult,
+      todaySessionsResult,
+      weekSessionsCountResult,
+      assignedPlayersResult,
+    ] = await Promise.all([
+      supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('coach_id', coachId)
+        .eq('is_active', true),
+      supabase
+        .from('sessions')
+        .select(`
+          id,
+          date,
+          start_time,
+          end_time,
+          session_type,
+          court:courts(name),
+          session_players(
+            player:players(id, full_name)
+          )
+        `)
+        .eq('coach_id', coachId)
+        .eq('date', today)
+        .order('start_time', { ascending: true }),
+      supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('coach_id', coachId)
+        .gte('date', today)
+        .lte('date', weekEndStr),
+      supabase
+        .from('players')
+        .select('id, full_name, email')
+        .eq('coach_id', coachId)
+        .eq('is_active', true)
+        .order('full_name', { ascending: true })
+        .limit(5),
+    ])
+
+    playersCount = playersCountResult.count ?? 0
+    todaySessions = (todaySessionsResult.data as any[] | null) ?? []
+    weekSessionsCount = weekSessionsCountResult.count ?? 0
+    assignedPlayers = (assignedPlayersResult.data as any[] | null) ?? []
+  } catch {
+    // Queries failed — show empty dashboard
+  }
 
   return (
     <CoachDashboardWrapper>
@@ -157,7 +167,7 @@ export default async function CoachDashboardPage() {
         <div className="bg-white rounded-xl border border-stone-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-stone-800">Today&apos;s Sessions</h2>
-            <Link href="/sessions" className="text-sm text-red-600 hover:text-red-700">
+            <Link href="/dashboard/coach/schedule" className="text-sm text-red-600 hover:text-red-700">
               View schedule
             </Link>
           </div>
@@ -240,7 +250,7 @@ export default async function CoachDashboardPage() {
           <h2 className="text-lg font-semibold text-stone-800 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
-              href="/sessions"
+              href="/dashboard/coach/schedule"
               className="flex flex-col items-center gap-2 p-4 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
             >
               <Calendar className="w-8 h-8 text-blue-600" />

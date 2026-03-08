@@ -2,10 +2,17 @@ import { getPlayersServer, getCoachesServer } from '@/features/player-database/l
 import { CoachPlayersClient } from './coach-players-client'
 
 export default async function CoachPlayersPage() {
-  const [players, coaches] = await Promise.all([
-    getPlayersServer(),
-    getCoachesServer(),
-  ])
+  let players: any[] = []
+  let coaches: any[] = []
+
+  try {
+    ;[players, coaches] = await Promise.all([
+      getPlayersServer(),
+      getCoachesServer(),
+    ])
+  } catch {
+    // Queries failed — show empty state
+  }
 
   return (
     <CoachPlayersClient
