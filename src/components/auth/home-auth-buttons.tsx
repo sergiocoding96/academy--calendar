@@ -3,11 +3,11 @@
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-provider'
 import Link from 'next/link'
-import { User, LogIn } from 'lucide-react'
+import { User, LogIn, LayoutDashboard } from 'lucide-react'
 
 export function HomeAuthButtons() {
   const router = useRouter()
-  const { user, isGuest, signInAsGuest, signOut } = useAuth()
+  const { user, profile, isGuest, signInAsGuest, signOut } = useAuth()
 
   const handleGuestLogin = () => {
     signInAsGuest()
@@ -19,9 +19,20 @@ export function HomeAuthButtons() {
     router.push('/login')
   }
 
+  const dashboardHref = profile?.role === 'player'
+    ? '/dashboard/player'
+    : '/dashboard/coach'
+
   if (user || isGuest) {
     return (
       <div className="flex items-center gap-3">
+        <Link
+          href={dashboardHref}
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors text-sm font-medium"
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          Dashboard
+        </Link>
         <button
           onClick={handleSignOut}
           className="px-4 py-2 text-red-200 hover:text-white transition-colors text-sm"

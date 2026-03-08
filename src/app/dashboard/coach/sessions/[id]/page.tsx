@@ -54,6 +54,7 @@ export default function CoachSessionDetailPage() {
   }, [params.id])
 
   const fetchData = async () => {
+    try {
     // Fetch session
     const { data: sessionData } = await supabase
       .from('sessions')
@@ -100,13 +101,19 @@ export default function CoachSessionDetailPage() {
       for (const sp of sessionPlayers) {
         if (!sp.player) continue
 
-        // Fetch rating for this player
-        const { data: rating } = await supabase
-          .from('session_ratings')
-          .select('*')
-          .eq('session_id', params.id)
-          .eq('player_id', sp.player.id)
-          .single()
+        // Fetch rating for this player (table may not exist yet)
+        let rating: any = null
+        try {
+          const { data } = await supabase
+            .from('session_ratings')
+            .select('*')
+            .eq('session_id', params.id as string)
+            .eq('player_id', sp.player.id)
+            .single()
+          rating = data
+        } catch {
+          // session_ratings table may not exist
+        }
 
         playersWithRatings.push({
           player: sp.player,
@@ -129,6 +136,9 @@ export default function CoachSessionDetailPage() {
       setFormData(initialFormData)
     }
 
+    } catch {
+      // Queries may fail if tables don't exist
+    }
     setLoading(false)
   }
 
@@ -136,35 +146,40 @@ export default function CoachSessionDetailPage() {
     if (!session) return
 
     setSaving(playerId)
-    const data = formData[playerId]
-    const existingPlayer = players.find(p => p.player.id === playerId)
+    try {
+      const data = formData[playerId]
+      const existingPlayer = players.find(p => p.player.id === playerId)
 
-    const ratingData = {
-      session_id: session.id,
-      player_id: playerId,
-      overall_rating: data.overall_rating || null,
-      effort_rating: data.effort_rating || null,
-      technique_rating: data.technique_rating || null,
-      attitude_rating: data.attitude_rating || null,
-      tactical_rating: data.tactical_rating || null,
-      duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
-      intensity_level: data.intensity_level ? parseInt(data.intensity_level) : null,
-      notes: data.notes || null
+      const ratingData = {
+        session_id: session.id,
+        player_id: playerId,
+        overall_rating: data.overall_rating || null,
+        effort_rating: data.effort_rating || null,
+        technique_rating: data.technique_rating || null,
+        attitude_rating: data.attitude_rating || null,
+        tactical_rating: data.tactical_rating || null,
+        duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
+        intensity_level: data.intensity_level ? parseInt(data.intensity_level) : null,
+        notes: data.notes || null
+      }
+
+      if (existingPlayer?.rating?.id) {
+        await supabase
+          .from('session_ratings')
+          .update(ratingData)
+          .eq('id', existingPlayer.rating.id)
+      } else {
+        await supabase
+          .from('session_ratings')
+          .insert(ratingData)
+      }
+
+      fetchData()
+    } catch {
+      // session_ratings table may not exist yet
+    } finally {
+      setSaving(null)
     }
-
-    if (existingPlayer?.rating?.id) {
-      await supabase
-        .from('session_ratings')
-        .update(ratingData)
-        .eq('id', existingPlayer.rating.id)
-    } else {
-      await supabase
-        .from('session_ratings')
-        .insert(ratingData)
-    }
-
-    setSaving(null)
-    fetchData()
   }
 
   const updateFormData = (playerId: string, field: string, value: any) => {

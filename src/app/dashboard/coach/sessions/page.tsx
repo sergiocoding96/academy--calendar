@@ -11,7 +11,8 @@ export default async function CoachSessionsPage() {
 
   let sessions: any[] | null = null
   try {
-    const { data } = await supabase
+    // Try with session_ratings join first
+    const { data, error } = await supabase
       .from('sessions')
       .select(`
         id,
@@ -32,9 +33,40 @@ export default async function CoachSessionsPage() {
       .eq('coach_id', coachId)
       .order('date', { ascending: false })
       .limit(50)
-    sessions = data as any[] | null
+
+    if (error) {
+      // Fallback without session_ratings (table may not exist)
+      const { data: fallback } = await supabase
+        .from('sessions')
+        .select(`
+          id, date, start_time, end_time, session_type, notes,
+          court:courts(name),
+          session_players(player:players(id, name))
+        `)
+        .eq('coach_id', coachId)
+        .order('date', { ascending: false })
+        .limit(50)
+      sessions = fallback as any[] | null
+    } else {
+      sessions = data as any[] | null
+    }
   } catch {
-    sessions = null
+    // PostgREST throws when table doesn't exist — fallback
+    try {
+      const { data } = await supabase
+        .from('sessions')
+        .select(`
+          id, date, start_time, end_time, session_type, notes,
+          court:courts(name),
+          session_players(player:players(id, name))
+        `)
+        .eq('coach_id', coachId)
+        .order('date', { ascending: false })
+        .limit(50)
+      sessions = data as any[] | null
+    } catch {
+      sessions = null
+    }
   }
 
   // Group sessions by date
