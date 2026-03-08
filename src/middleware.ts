@@ -54,15 +54,15 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Refresh session if expired — wrapped in try/catch because supabase.auth.getUser()
-    // can throw AuthApiError ("Invalid Refresh Token: Refresh Token Not Found") when
-    // the browser has an expired/invalid refresh token. Without this, the middleware
-    // crashes the entire request with a 500.
+    // Use getSession() instead of getUser() to avoid consuming the refresh token.
+    // getUser() makes a network call that can race with client-side token refresh,
+    // causing auth state to break when navigating between pages.
+    // getSession() reads from cookies without a network call.
     try {
-      const { data } = await supabase.auth.getUser()
-      user = data.user
+      const { data: { session } } = await supabase.auth.getSession()
+      user = session?.user ?? null
     } catch {
-      // Invalid/expired token — treat as unauthenticated; middleware will redirect to login below
+      // Invalid/expired token — treat as unauthenticated
       user = null
     }
   }
@@ -90,8 +90,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
-     * - api routes
+     * - api routes (they handle their own auth)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

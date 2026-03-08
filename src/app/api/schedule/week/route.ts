@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         player_id,
         status,
         absent_reason,
-        player:players(id, full_name)
+        player:players(id, name)
       )
     `)
     .gte('date', start)

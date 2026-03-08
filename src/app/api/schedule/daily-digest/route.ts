@@ -39,7 +39,7 @@ type SessionRow = {
   coach: { name: string } | { name: string }[] | null
   session_players: {
     status: string
-    player: { full_name: string; name: string } | { full_name: string; name: string }[] | null
+    player: { name: string } | { name: string }[] | null
   }[]
 }
 
@@ -85,7 +85,7 @@ function buildSlackMessage(dateStr: string, sessions: SessionRow[]): string {
       .filter((sp) => sp.status !== 'cancelled')
       .map((sp) => {
         const p = unwrap(sp.player)
-        const name = p?.full_name || p?.name || 'Unknown'
+        const name = p?.name || 'Unknown'
         if (sp.status === 'absent') return `~${name}~ _(absent)_`
         return name
       })
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
       coach:coaches(name),
       session_players(
         status,
-        player:players(full_name, name)
+        player:players(name)
       )
     `)
     .eq('date', today)
