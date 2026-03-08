@@ -113,51 +113,68 @@ function lastNDaysRange(days: number): DateRange {
   return { start, end }
 }
 
+// Safe query helper — PostgREST throws (instead of returning error) when a
+// table doesn't exist in the schema cache. Wrap each query so a missing table
+// returns empty data instead of crashing Promise.all.
+async function safeQuery<T>(
+  fn: () => PromiseLike<{ data: T | null; error: unknown }>
+): Promise<T | null> {
+  try {
+    const { data, error } = await fn()
+    return error ? null : data
+  } catch {
+    return null
+  }
+}
+
 export async function getPlayerWithDetailsServer(
   playerId: string
 ): Promise<PlayerWithDetails> {
   const supabase = await createClient()
   const last30Days = lastNDaysRange(30)
 
-  const [player, injuriesRes, notesRes, utrRes, loadsRes] = await Promise.all([
+  const [player, injuries, notes, utrHistory, trainingLoads] = await Promise.all([
     getPlayerServer(playerId),
-    supabase
-      .from('injuries')
-      .select('*')
-      .eq('player_id', playerId)
-      .order('injury_date', { ascending: false }),
-    supabase
-      .from('player_notes')
-      .select('*')
-      .eq('player_id', playerId)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('utr_history')
-      .select('*')
-      .eq('player_id', playerId)
-      .gte('recorded_date', last30Days.start.toISOString().split('T')[0])
-      .lte('recorded_date', last30Days.end.toISOString().split('T')[0])
-      .order('recorded_date', { ascending: false }),
-    supabase
-      .from('training_loads')
-      .select('*')
-      .eq('player_id', playerId)
-      .gte('session_date', last30Days.start.toISOString().split('T')[0])
-      .lte('session_date', last30Days.end.toISOString().split('T')[0])
-      .order('session_date', { ascending: false }),
+    safeQuery(() =>
+      supabase
+        .from('injuries')
+        .select('*')
+        .eq('player_id', playerId)
+        .order('injury_date', { ascending: false })
+    ),
+    safeQuery(() =>
+      supabase
+        .from('player_notes')
+        .select('*')
+        .eq('player_id', playerId)
+        .order('created_at', { ascending: false })
+    ),
+    safeQuery(() =>
+      supabase
+        .from('utr_history')
+        .select('*')
+        .eq('player_id', playerId)
+        .gte('recorded_date', last30Days.start.toISOString().split('T')[0])
+        .lte('recorded_date', last30Days.end.toISOString().split('T')[0])
+        .order('recorded_date', { ascending: false })
+    ),
+    safeQuery(() =>
+      supabase
+        .from('training_loads')
+        .select('*')
+        .eq('player_id', playerId)
+        .gte('session_date', last30Days.start.toISOString().split('T')[0])
+        .lte('session_date', last30Days.end.toISOString().split('T')[0])
+        .order('session_date', { ascending: false })
+    ),
   ])
-
-  const injuries = injuriesRes.error ? [] : injuriesRes.data || []
-  const notes = notesRes.error ? [] : notesRes.data || []
-  const utrHistory = utrRes.error ? [] : utrRes.data || []
-  const trainingLoads = loadsRes.error ? [] : loadsRes.data || []
 
   return {
     ...(player as Player),
     coach: (player as PlayerWithCoach).coach ?? null,
-    injuries,
-    notes,
-    utr_history: utrHistory,
-    training_loads: trainingLoads,
+    injuries: injuries || [],
+    notes: notes || [],
+    utr_history: utrHistory || [],
+    training_loads: trainingLoads || [],
   } as PlayerWithDetails
 }
