@@ -50,6 +50,7 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [sendingDigest, setSendingDigest] = useState(false)
+  const [sendingWeekly, setSendingWeekly] = useState(false)
   const [digestResult, setDigestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   const [addPlayerOpen, setAddPlayerOpen] = useState(false)
@@ -169,12 +170,31 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
         setDigestResult({ ok: false, message: data.error || 'Failed to send digest' })
         return
       }
-      setDigestResult({ ok: true, message: `Sent! ${data.session_count} session${data.session_count === 1 ? '' : 's'} for ${data.date}` })
+      setDigestResult({ ok: true, message: `Sent! ${data.session_count} active session${data.session_count === 1 ? '' : 's'} for ${data.date}` })
       setTimeout(() => setDigestResult(null), 5000)
     } catch {
       setDigestResult({ ok: false, message: 'Network error' })
     } finally {
       setSendingDigest(false)
+    }
+  }
+
+  const sendWeeklyDigest = async () => {
+    setSendingWeekly(true)
+    setDigestResult(null)
+    try {
+      const res = await fetch('/api/schedule/daily-digest?mode=weekly')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDigestResult({ ok: false, message: data.error || 'Failed to send weekly digest' })
+        return
+      }
+      setDigestResult({ ok: true, message: `Sent! ${data.session_count} active session${data.session_count === 1 ? '' : 's'} for week of ${data.week_start}` })
+      setTimeout(() => setDigestResult(null), 5000)
+    } catch {
+      setDigestResult({ ok: false, message: 'Network error' })
+    } finally {
+      setSendingWeekly(false)
     }
   }
 
@@ -257,12 +277,21 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
           <p className="text-sm text-stone-500">{sessions.length} sessions this week</p>
           <button
             type="button"
+            onClick={sendWeeklyDigest}
+            disabled={sendingWeekly}
+            className="flex items-center gap-1.5 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 disabled:opacity-50 text-sm font-medium"
+          >
+            <Send className="w-4 h-4" />
+            {sendingWeekly ? 'Sending...' : 'Weekly digest'}
+          </button>
+          <button
+            type="button"
             onClick={sendDailyDigest}
             disabled={sendingDigest}
             className="flex items-center gap-1.5 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 disabled:opacity-50 text-sm font-medium"
           >
             <Send className="w-4 h-4" />
-            {sendingDigest ? 'Sending...' : 'Send daily digest'}
+            {sendingDigest ? 'Sending...' : 'Daily digest'}
           </button>
           <button
             type="button"

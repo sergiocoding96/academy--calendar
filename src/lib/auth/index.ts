@@ -4,17 +4,22 @@ import { redirect } from 'next/navigation'
 import type { UserProfile, UserRole } from '@/types/database'
 
 // cache() deduplicates calls within a single server request, so layout + page
-// don't each make their own getUser() / profile roundtrips.
+// don't each make their own roundtrips.
+// Uses getSession() instead of getUser() to avoid consuming the single-use
+// refresh token on the server. getUser() makes a network call that races with
+// the client-side token refresh — causing auth state to break on navigation.
+// getSession() reads from cookies without a network call. The middleware
+// already handles the auth gate, so JWT re-validation isn't needed here.
 export const getUser = cache(async () => {
   try {
     const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data: { session }, error } = await supabase.auth.getSession()
 
-    if (error || !user) {
+    if (error || !session?.user) {
       return null
     }
 
-    return user
+    return session.user
   } catch {
     return null
   }

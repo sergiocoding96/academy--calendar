@@ -5,6 +5,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/schedule/daily-digest?mode=weekly",
+      "schedule": "0 5 * * 1"
+    },
+    {
       "path": "/api/agent/scrape",
       "schedule": "0 6 * * 1"
     }
