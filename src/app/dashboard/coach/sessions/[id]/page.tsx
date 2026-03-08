@@ -7,6 +7,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { StarRating } from '@/components/ui/star-rating'
 import { Calendar, Clock, MapPin, User, ChevronLeft, Save, Users } from 'lucide-react'
 import Link from 'next/link'
+import { formatTime } from '@/lib/utils'
 
 type Session = {
   id: string
@@ -192,13 +193,6 @@ export default function CoachSessionDetailPage() {
     }))
   }
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':')
-    const hour = parseInt(hours)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
-  }
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00')

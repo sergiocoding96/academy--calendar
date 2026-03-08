@@ -20,12 +20,18 @@ export default async function CoachPlayerFitnessPage({
     .single() as { data: { id: string; name: string } | null }
 
   // Get fitness logs
-  const { data: fitnessLogs } = await supabase
-    .from('fitness_logs')
-    .select('*')
-    .eq('player_id', id)
-    .order('log_date', { ascending: false })
-    .limit(100) as { data: any[] | null }
+  let fitnessLogs: any[] | null = null
+  try {
+    const { data } = await supabase
+      .from('fitness_logs')
+      .select('*')
+      .eq('player_id', id)
+      .order('log_date', { ascending: false })
+      .limit(100) as { data: any[] | null }
+    fitnessLogs = data
+  } catch {
+    // Table may not exist yet — fall through with null
+  }
 
   // Group by date
   const groupedLogs: { [key: string]: any[] } = {}

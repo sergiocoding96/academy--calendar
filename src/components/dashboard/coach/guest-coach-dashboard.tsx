@@ -77,7 +77,7 @@ export function GuestCoachDashboard() {
         </div>
 
         <Link
-          href="/tournaments"
+          href="/dashboard/coach/tournaments"
           className="bg-white p-6 rounded-xl border border-stone-200 hover:border-red-200 hover:shadow-md transition-all"
         >
           <div className="flex items-center gap-4">
@@ -98,7 +98,7 @@ export function GuestCoachDashboard() {
         <div className="bg-white rounded-xl border border-stone-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-stone-800">Today&apos;s Sessions</h2>
-            <Link href="/sessions" className="text-sm text-red-600 hover:text-red-700">
+            <Link href="/dashboard/coach/schedule" className="text-sm text-red-600 hover:text-red-700">
               View schedule
             </Link>
           </div>
@@ -165,7 +165,7 @@ export function GuestCoachDashboard() {
           <h2 className="text-lg font-semibold text-stone-800 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
-              href="/sessions"
+              href="/dashboard/coach/schedule"
               className="flex flex-col items-center gap-2 p-4 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
             >
               <Calendar className="w-8 h-8 text-blue-600" />
@@ -179,7 +179,7 @@ export function GuestCoachDashboard() {
               <span className="text-sm font-medium text-stone-700">Player Profiles</span>
             </Link>
             <Link
-              href="/tournaments"
+              href="/dashboard/coach/tournaments"
               className="flex flex-col items-center gap-2 p-4 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
             >
               <Trophy className="w-8 h-8 text-amber-600" />

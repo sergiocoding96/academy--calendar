@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -14,6 +15,7 @@ import {
   ClipboardCheck,
   Home
 } from 'lucide-react'
+import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/components/auth/auth-provider'
 
 const navItems = [
@@ -30,6 +32,31 @@ export function CoachSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { profile, signOut } = useAuth()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    async function fetchPendingCount() {
+      try {
+        const { count, error } = await supabase
+          .from('schedule_change_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending')
+
+        if (!error && count !== null) {
+          setPendingCount(count)
+        }
+      } catch {
+        // Table may not exist yet — silently ignore
+      }
+    }
+
+    fetchPendingCount()
+  }, [])
 
   const handleSignOut = () => {
     // Don't await — signOut clears state instantly, router navigates immediately
@@ -74,6 +101,11 @@ export function CoachSidebar() {
             >
               <item.icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>
+              {item.label === 'Approvals' && pendingCount > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
           )
         })}

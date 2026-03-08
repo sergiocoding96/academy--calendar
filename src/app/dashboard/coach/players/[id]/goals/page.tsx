@@ -20,11 +20,17 @@ export default async function CoachPlayerGoalsPage({
     .single() as { data: { id: string; name: string } | null }
 
   // Get all goals
-  const { data: goals } = await supabase
-    .from('goals')
-    .select('*')
-    .eq('player_id', id)
-    .order('created_at', { ascending: false }) as { data: any[] | null }
+  let goals: any[] | null = null
+  try {
+    const { data } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('player_id', id)
+      .order('created_at', { ascending: false }) as { data: any[] | null }
+    goals = data
+  } catch {
+    // Table may not exist yet — fall through with null
+  }
 
   // Separate by status
   const activeGoals = goals?.filter(g => g.status === 'active') || []

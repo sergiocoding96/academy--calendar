@@ -20,14 +20,20 @@ export default async function CoachPlayerMatchesPage({
     .single() as { data: { id: string; name: string } | null }
 
   // Get all match results
-  const { data: matches } = await supabase
-    .from('match_results')
-    .select(`
-      *,
-      tournament:tournaments(name, start_date, end_date)
-    `)
-    .eq('player_id', id)
-    .order('match_date', { ascending: false }) as { data: any[] | null }
+  let matches: any[] | null = null
+  try {
+    const { data } = await supabase
+      .from('match_results')
+      .select(`
+        *,
+        tournament:tournaments(name, start_date, end_date)
+      `)
+      .eq('player_id', id)
+      .order('match_date', { ascending: false }) as { data: any[] | null }
+    matches = data
+  } catch {
+    // Table may not exist yet — fall through with null
+  }
 
   // Calculate overall stats
   const wins = matches?.filter(m => m.result === 'win').length || 0

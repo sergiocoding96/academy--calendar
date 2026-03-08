@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
+import { formatTime } from '@/lib/utils'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -11,14 +12,6 @@ function addDays(dateStr: string, days: number) {
   const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() + days)
   return d.toISOString().slice(0, 10)
-}
-
-function formatTime(time: string) {
-  const [h, m] = time.split(':')
-  const hour = parseInt(h, 10)
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const h12 = hour % 12 || 12
-  return `${h12}:${m} ${ampm}`
 }
 
 function formatDate(dateStr: string) {
@@ -82,6 +75,17 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
     const next = addDays(weekStart, 7)
     setWeekStart(next)
     loadWeek(next)
+  }
+
+  const goToToday = () => {
+    const today = new Date()
+    const day = today.getDay()
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1)
+    const monday = new Date(today)
+    monday.setDate(diff)
+    const mondayStr = monday.toISOString().slice(0, 10)
+    setWeekStart(mondayStr)
+    loadWeek(mondayStr)
   }
 
   const openPropose = (session: Session, type: string) => {
@@ -209,6 +213,13 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
             className="p-2 rounded-lg border border-stone-200 hover:bg-stone-100"
           >
             <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={goToToday}
+            className="px-2 py-1 text-sm font-medium text-stone-600 hover:text-stone-800 hover:bg-stone-100 rounded"
+          >
+            Today
           </button>
           <span className="font-medium text-stone-800 min-w-[200px] text-center">
             {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
