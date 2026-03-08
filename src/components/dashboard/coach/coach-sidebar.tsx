@@ -11,7 +11,8 @@ import {
   Trophy,
   ClipboardList,
   CheckSquare,
-  ClipboardCheck
+  ClipboardCheck,
+  Home
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 
@@ -80,6 +81,13 @@ export function CoachSidebar() {
 
       {/* User section — pinned at bottom */}
       <div className="shrink-0 p-4 border-t border-stone-200">
+        <Link
+          href="/"
+          className="flex items-center gap-3 px-4 py-2 mb-2 text-stone-500 hover:bg-stone-50 hover:text-stone-800 rounded-lg transition-colors text-sm"
+        >
+          <Home className="w-4 h-4" />
+          <span className="font-medium">Quick Access Home</span>
+        </Link>
         <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-lg mb-3">
           <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-white" />

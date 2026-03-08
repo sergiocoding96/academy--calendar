@@ -62,6 +62,7 @@ export default async function CoachDashboardPage() {
           start_time,
           end_time,
           session_type,
+          notes,
           court:courts(name),
           session_players(
             player:players(id, full_name)
@@ -174,30 +175,36 @@ export default async function CoachDashboardPage() {
 
           {todaySessions && todaySessions.length > 0 ? (
             <div className="space-y-3">
-              {todaySessions.map((session: any) => (
+              {todaySessions.map((session: any) => {
+                const isCancelled = session.notes?.includes('[Cancelled]')
+                return (
                 <Link
                   key={session.id}
                   href={`/dashboard/coach/sessions/${session.id}`}
-                  className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
+                  className={`flex items-center gap-4 p-3 rounded-lg transition-colors ${isCancelled ? 'bg-red-50 opacity-60' : 'bg-stone-50 hover:bg-stone-100'}`}
                 >
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-red-600" />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isCancelled ? 'bg-red-200' : 'bg-red-100'}`}>
+                    <Calendar className={`w-5 h-5 ${isCancelled ? 'text-red-400' : 'text-red-600'}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-stone-800 capitalize">
+                    <p className={`font-medium capitalize ${isCancelled ? 'text-red-400 line-through' : 'text-stone-800'}`}>
                       {session.session_type?.replaceAll('_', ' ') || 'Training'}
+                      {isCancelled && <span className="text-xs font-medium text-red-500 ml-2 no-underline inline-block">Cancelled</span>}
                     </p>
                     <p className="text-sm text-stone-500">
                       {formatTime(session.start_time)} - {formatTime(session.end_time)} • {session.court?.name}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs text-stone-400">
-                      {session.session_players?.length || 0} players
-                    </span>
-                  </div>
+                  {!isCancelled && (
+                    <div className="text-right">
+                      <span className="text-xs text-stone-400">
+                        {session.session_players?.length || 0} players
+                      </span>
+                    </div>
+                  )}
                 </Link>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-stone-500">

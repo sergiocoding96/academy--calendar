@@ -244,51 +244,59 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
                 <p className="font-medium text-stone-800">{date.slice(8)}</p>
               </div>
               <div className="p-2 space-y-2">
-                {(sessionsByDate[date] || []).map((session) => (
+                {(sessionsByDate[date] || []).map((session) => {
+                  const isCancelled = session.notes?.includes('[Cancelled]')
+                  return (
                   <div
                     key={session.id}
-                    className="p-2 rounded-lg border border-stone-200 bg-white text-xs"
+                    className={`p-2 rounded-lg border text-xs ${isCancelled ? 'border-red-200 bg-red-50 opacity-60' : 'border-stone-200 bg-white'}`}
                   >
-                    <p className="font-medium text-stone-800">{formatTime(session.start_time)}</p>
-                    <p className="text-stone-500 truncate">{session.session_type}</p>
-                    <p className="text-stone-500 truncate">{session.court?.name || '—'}</p>
-                    {session.session_players && session.session_players.length > 0 && (
-                      <p className="text-stone-500 truncate mt-0.5">
-                        {session.session_players.map((sp) => (sp.player as { name?: string; full_name?: string })?.name ?? (sp.player as { full_name?: string })?.full_name ?? '—').join(', ')}
-                      </p>
+                    <p className={`font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-stone-800'}`}>{formatTime(session.start_time)}</p>
+                    <p className={`truncate ${isCancelled ? 'text-red-400 line-through' : 'text-stone-500'}`}>{session.session_type}</p>
+                    {isCancelled && <p className="text-red-500 font-medium mt-0.5">Cancelled</p>}
+                    {!isCancelled && (
+                      <>
+                        <p className="text-stone-500 truncate">{session.court?.name || '—'}</p>
+                        {session.session_players && session.session_players.length > 0 && (
+                          <p className="text-stone-500 truncate mt-0.5">
+                            {session.session_players.map((sp) => (sp.player as { name?: string; full_name?: string })?.name ?? (sp.player as { full_name?: string })?.full_name ?? '—').join(', ')}
+                          </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openAddPlayer(session)}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            + Player
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openPropose(session, 'cancel_session')}
+                            className="text-amber-600 hover:text-amber-700"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openPropose(session, 'move_time')}
+                            className="text-stone-600 hover:text-stone-800"
+                          >
+                            Move
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openPropose(session, 'change_court')}
+                            className="text-stone-600 hover:text-stone-800"
+                          >
+                            Court
+                          </button>
+                        </div>
+                      </>
                     )}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openAddPlayer(session)}
-                        className="text-blue-600 hover:text-blue-700"
-                      >
-                        + Player
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openPropose(session, 'cancel_session')}
-                        className="text-amber-600 hover:text-amber-700"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openPropose(session, 'move_time')}
-                        className="text-stone-600 hover:text-stone-800"
-                      >
-                        Move
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openPropose(session, 'change_court')}
-                        className="text-stone-600 hover:text-stone-800"
-                      >
-                        Court
-                      </button>
-                    </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}

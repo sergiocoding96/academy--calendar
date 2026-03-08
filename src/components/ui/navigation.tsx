@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3, Bot } from 'lucide-react'
+import { Calendar, Trophy, Users, Settings, Home, LogOut, ChevronDown, Heart, Brain, BarChart3, Bot, LayoutDashboard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/auth-provider'
 import { useState, useRef, useEffect } from 'react'
@@ -130,6 +130,28 @@ export function Navigation() {
                             {profile?.role || 'User'}
                           </p>
                         </div>
+
+                        {/* Dashboard */}
+                        {(profile?.role === 'coach' || profile?.role === 'admin') && (
+                          <Link
+                            href="/dashboard/coach"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            Coach Dashboard
+                          </Link>
+                        )}
+                        {profile?.role === 'player' && (
+                          <Link
+                            href="/dashboard/player"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            Player Dashboard
+                          </Link>
+                        )}
 
                         {/* Settings */}
                         <Link
