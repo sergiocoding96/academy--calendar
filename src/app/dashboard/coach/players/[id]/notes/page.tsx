@@ -5,6 +5,7 @@ import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { NotesManager } from '@/features/player-database/components'
 import { usePlayer } from '@/features/player-database/hooks'
+import type { PlayerWithDetails } from '@/features/player-database/types'
 
 export default function CoachPlayerNotesPage() {
   const params = useParams()
@@ -31,7 +32,7 @@ export default function CoachPlayerNotesPage() {
     )
   }
 
-  const notes = (player as any).notes || []
+  const notes = (player as PlayerWithDetails).notes || []
 
   return (
     <div className="p-8">

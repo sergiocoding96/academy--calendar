@@ -5,6 +5,25 @@ import Link from 'next/link'
 import { CoachDashboardWrapper } from '@/components/dashboard/coach/coach-dashboard-wrapper'
 import { formatTime } from '@/lib/utils'
 
+interface CoachSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  session_type: string | null
+  notes: string | null
+  court: { name: string } | { name: string }[] | null
+  session_players: {
+    player: { id: string; full_name: string } | { id: string; full_name: string }[] | null
+  }[]
+}
+
+interface AssignedPlayerRow {
+  id: string
+  full_name: string
+  email: string
+}
+
 export default async function CoachDashboardPage() {
   const profile = await getUserProfile()
   const supabase = await createClient()
@@ -38,9 +57,9 @@ export default async function CoachDashboardPage() {
   // Run all dashboard queries in parallel — each wrapped so a missing table
   // doesn't crash the entire dashboard
   let playersCount = 0
-  let todaySessions: any[] = []
+  let todaySessions: CoachSessionRow[] = []
   let weekSessionsCount = 0
-  let assignedPlayers: any[] = []
+  let assignedPlayers: AssignedPlayerRow[] = []
 
   try {
     const [
@@ -87,9 +106,9 @@ export default async function CoachDashboardPage() {
     ])
 
     playersCount = playersCountResult.count ?? 0
-    todaySessions = (todaySessionsResult.data as any[] | null) ?? []
+    todaySessions = (todaySessionsResult.data as CoachSessionRow[] | null) ?? []
     weekSessionsCount = weekSessionsCountResult.count ?? 0
-    assignedPlayers = (assignedPlayersResult.data as any[] | null) ?? []
+    assignedPlayers = (assignedPlayersResult.data as AssignedPlayerRow[] | null) ?? []
   } catch {
     // Queries failed — show empty dashboard
   }
@@ -175,7 +194,7 @@ export default async function CoachDashboardPage() {
 
           {todaySessions && todaySessions.length > 0 ? (
             <div className="space-y-3">
-              {todaySessions.map((session: any) => {
+              {todaySessions.map((session) => {
                 const isCancelled = session.notes?.includes('[Cancelled]')
                 return (
                 <Link
@@ -225,7 +244,7 @@ export default async function CoachDashboardPage() {
 
           {assignedPlayers && assignedPlayers.length > 0 ? (
             <div className="space-y-3">
-              {assignedPlayers.map((player: any) => (
+              {assignedPlayers.map((player) => (
                 <Link
                   key={player.id}
                   href={`/dashboard/coach/players/${player.id}`}

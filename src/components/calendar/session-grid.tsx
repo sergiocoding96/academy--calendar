@@ -129,7 +129,7 @@ export function SessionGrid() {
         }),
       })
 
-      const data = await res.json().catch(() => ({} as any))
+      const data = await res.json().catch(() => ({} as Record<string, unknown>))
       if (!res.ok) {
         setAddError(data.error || 'Failed to create session request')
         return
@@ -191,9 +191,9 @@ export function SessionGrid() {
         setFetchError('Unable to load sessions for this day. Please try again or refresh the page.')
         setSessions([])
       } else {
-        const sessionsWithPlayers = data?.map((session: any) => ({
-          ...session,
-          players: session.session_players?.map((sp: any) => sp.player).filter(Boolean)
+        const sessionsWithPlayers: SessionWithDetails[] = data?.map((session: Record<string, unknown> & { session_players?: { player: CalendarPlayer }[] }) => ({
+          ...(session as unknown as SessionWithDetails),
+          players: session.session_players?.map((sp) => sp.player).filter(Boolean)
         })) || []
         setSessions(sessionsWithPlayers)
       }

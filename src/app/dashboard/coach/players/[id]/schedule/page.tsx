@@ -3,6 +3,40 @@ import { createClient } from '@/lib/supabase/server'
 import { Calendar, ChevronLeft, Clock, MapPin, Star, Users } from 'lucide-react'
 import Link from 'next/link'
 
+interface SessionPlayerJoinRow {
+  session: PlayerScheduleSession | PlayerScheduleSession[] | null
+}
+
+interface PlayerScheduleSession {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  session_type: string | null
+  notes: string | null
+  court: { name: string } | { name: string }[] | null
+  coach: { name: string } | { name: string }[] | null
+}
+
+interface SessionRatingRow {
+  session_id: string
+  overall_rating: number | null
+  intensity_level: number | null
+  duration_minutes: number | null
+}
+
+interface NormalizedSession {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  session_type: string | null
+  notes: string | null
+  court: { name: string } | null
+  coach: { name: string } | null
+  rating?: SessionRatingRow | null
+}
+
 export default async function CoachPlayerSchedulePage({
   params,
 }: {
@@ -35,25 +69,29 @@ export default async function CoachPlayerSchedulePage({
       )
     `)
     .eq('player_id', id)
-    .order('session(date)', { ascending: false }) as { data: any[] | null }
+    .order('session(date)', { ascending: false }) as { data: SessionPlayerJoinRow[] | null }
 
   // Get session ratings for this player
   const { data: ratings } = await supabase
     .from('session_ratings')
     .select('session_id, overall_rating, intensity_level, duration_minutes')
-    .eq('player_id', id) as { data: any[] | null }
+    .eq('player_id', id) as { data: SessionRatingRow[] | null }
 
   const ratingsMap = new Map(ratings?.map(r => [r.session_id, r]) || [])
 
   // Normalize nested session (PostgREST can return object or single-element array)
-  const sessionList = (sessionPlayers ?? []).map((sp: any) => {
-    const session = sp.session == null ? null : Array.isArray(sp.session) ? sp.session[0] : sp.session
-    return session ? { ...session, rating: ratingsMap.get(session.id) } : null
-  }).filter(Boolean) as any[]
+  const sessionList: NormalizedSession[] = (sessionPlayers ?? []).reduce<NormalizedSession[]>((acc, sp) => {
+    const raw = sp.session == null ? null : Array.isArray(sp.session) ? sp.session[0] : sp.session
+    if (!raw) return acc
+    const court = Array.isArray(raw.court) ? raw.court[0] ?? null : raw.court
+    const coach = Array.isArray(raw.coach) ? raw.coach[0] ?? null : raw.coach
+    acc.push({ ...raw, court, coach, rating: ratingsMap.get(raw.id) ?? null })
+    return acc
+  }, [])
 
   // Group sessions by date
-  const groupedSessions: { [key: string]: any[] } = {}
-  sessionList.forEach((session: any) => {
+  const groupedSessions: { [key: string]: NormalizedSession[] } = {}
+  sessionList.forEach((session) => {
     const date = session.date
     if (!date) return
     if (!groupedSessions[date]) {
@@ -174,7 +212,7 @@ export default async function CoachPlayerSchedulePage({
 
               {/* Sessions */}
               <div className="divide-y divide-stone-100">
-                {groupedSessions[date].map((session: any) => (
+                {groupedSessions[date].map((session) => (
                   <div key={session.id} className="p-4">
                     <div className="flex items-center gap-4">
                       {/* Time */}

@@ -6,13 +6,15 @@ import { ChevronLeft, Plus, X, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { InjuryForm } from '@/features/player-database/components'
 import { usePlayer } from '@/features/player-database/hooks'
+import type { PlayerWithDetails } from '@/features/player-database/types'
+import type { Injury } from '@/features/player-database/types'
 import { cn } from '@/lib/utils'
 
 export default function CoachPlayerInjuriesPage() {
   const params = useParams()
   const playerId = params.id as string
   const [showAddForm, setShowAddForm] = useState(false)
-  const [editingInjury, setEditingInjury] = useState<any>(null)
+  const [editingInjury, setEditingInjury] = useState<Injury | null>(null)
 
   const { player, loading, error, refetch } = usePlayer(playerId, { withDetails: true })
 
@@ -41,11 +43,11 @@ export default function CoachPlayerInjuriesPage() {
     )
   }
 
-  const injuries = (player as any).injuries || []
+  const injuries = (player as PlayerWithDetails).injuries || []
 
   // Separate active and cleared injuries
-  const activeInjuries = injuries.filter((i: any) => i.status !== 'cleared')
-  const clearedInjuries = injuries.filter((i: any) => i.status === 'cleared')
+  const activeInjuries = injuries.filter((i) => i.status !== 'cleared')
+  const clearedInjuries = injuries.filter((i) => i.status === 'cleared')
 
   // Sort by date
   const sortActive = [...activeInjuries].sort(
@@ -123,7 +125,7 @@ export default function CoachPlayerInjuriesPage() {
         <div className="bg-white rounded-xl border border-stone-200 p-4">
           <p className="text-sm text-stone-500">Recovering</p>
           <p className="text-2xl font-bold text-yellow-600">
-            {activeInjuries.filter((i: any) => i.status === 'recovering').length}
+            {activeInjuries.filter((i) => i.status === 'recovering').length}
           </p>
           <p className="text-xs text-stone-400">injuries</p>
         </div>
@@ -154,7 +156,7 @@ export default function CoachPlayerInjuriesPage() {
         <div className="mb-6">
           <h2 className="font-semibold text-stone-800 mb-4">Active Injuries</h2>
           <div className="space-y-3">
-            {sortActive.map((injury: any) => (
+            {sortActive.map((injury: Injury) => (
               <div
                 key={injury.id}
                 className="bg-white rounded-xl border border-stone-200 p-4"
@@ -205,7 +207,7 @@ export default function CoachPlayerInjuriesPage() {
         <div>
           <h2 className="font-semibold text-stone-800 mb-4">Injury History</h2>
           <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100">
-            {sortCleared.map((injury: any) => (
+            {sortCleared.map((injury: Injury) => (
               <div key={injury.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div>

@@ -3,6 +3,25 @@ import { createClient } from '@/lib/supabase/server'
 import { Target, Plus, TrendingUp, Calendar, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
+interface GoalProgressRow {
+  id: string
+  recorded_at: string
+  value: number
+}
+
+interface GoalRow {
+  id: string
+  title: string
+  goal_type: string
+  status: string
+  current_value: number | null
+  target_value: number | null
+  target_unit: string | null
+  target_date: string | null
+  created_at: string
+  goal_progress: GoalProgressRow[]
+}
+
 export default async function PlayerGoalsPage() {
   const profile = await getUserProfile()
   const supabase = await createClient()
@@ -10,7 +29,7 @@ export default async function PlayerGoalsPage() {
   const playerId = profile?.player_id || ''
 
   // Get all goals for this player (table may not exist yet)
-  let goals: any[] | null = null
+  let goals: GoalRow[] | null = null
   try {
     const { data } = await supabase
       .from('goals')
@@ -24,7 +43,7 @@ export default async function PlayerGoalsPage() {
       `)
       .eq('player_id', playerId)
       .order('created_at', { ascending: false })
-    goals = data as any[] | null
+    goals = data as GoalRow[] | null
   } catch {
     // Table may not exist yet — show empty state
   }
@@ -64,9 +83,9 @@ export default async function PlayerGoalsPage() {
     }
   }
 
-  const calculateProgress = (goal: any) => {
+  const calculateProgress = (goal: GoalRow) => {
     if (!goal.target_value || goal.target_value === 0) return 0
-    const progress = (goal.current_value / goal.target_value) * 100
+    const progress = ((goal.current_value ?? 0) / goal.target_value) * 100
     return Math.min(progress, 100)
   }
 
@@ -96,7 +115,7 @@ export default async function PlayerGoalsPage() {
         <h2 className="text-lg font-semibold text-stone-800 mb-4">Active Goals</h2>
         {activeGoals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {activeGoals.map((goal: any) => {
+            {activeGoals.map((goal: GoalRow) => {
               const progress = calculateProgress(goal)
               return (
                 <Link
@@ -167,7 +186,7 @@ export default async function PlayerGoalsPage() {
           <h2 className="text-lg font-semibold text-stone-800 mb-4">Completed Goals</h2>
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
             <div className="divide-y divide-stone-100">
-              {completedGoals.map((goal: any) => (
+              {completedGoals.map((goal: GoalRow) => (
                 <Link
                   key={goal.id}
                   href={`/dashboard/player/goals/${goal.id}`}
@@ -199,7 +218,7 @@ export default async function PlayerGoalsPage() {
           <h2 className="text-lg font-semibold text-stone-800 mb-4">Other Goals</h2>
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
             <div className="divide-y divide-stone-100">
-              {otherGoals.map((goal: any) => (
+              {otherGoals.map((goal: GoalRow) => (
                 <Link
                   key={goal.id}
                   href={`/dashboard/player/goals/${goal.id}`}

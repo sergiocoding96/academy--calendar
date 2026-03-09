@@ -4,12 +4,37 @@ import { Calendar, Clock, MapPin, User } from 'lucide-react'
 import Link from 'next/link'
 import { MarkAbsentButton } from '@/components/schedule/mark-absent-button'
 
+interface ScheduleSessionData {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  session_type: string | null
+  notes: string | null
+  court: { name: string } | null
+  coach: { name: string } | null
+}
+
+interface SessionPlayerRow {
+  id: string
+  status: string | null
+  absent_reason: string | null
+  session: ScheduleSessionData | ScheduleSessionData[] | null
+}
+
+interface NormalizedSessionPlayerRow {
+  id: string
+  status: string | null
+  absent_reason: string | null
+  session: ScheduleSessionData | null
+}
+
 export default async function PlayerSchedulePage() {
   const profile = await getUserProfile()
   const playerId = profile?.player_id || ''
 
   // Get all sessions for this player with session_players status (for absence)
-  let rows: any[] | null = null
+  let rows: SessionPlayerRow[] | null = null
   try {
     const supabase = await createClient()
     if (playerId) {
@@ -39,18 +64,20 @@ export default async function PlayerSchedulePage() {
   }
 
   // Normalize nested session, court, coach (PostgREST can return arrays)
-  const normalizedRows = (rows as any[] | null)?.map((item: any) => {
-    let session = item.session == null ? null : Array.isArray(item.session) ? item.session[0] : item.session
+  const normalizedRows: NormalizedSessionPlayerRow[] | undefined = rows?.map((item) => {
+    let session: ScheduleSessionData | null = item.session == null ? null : Array.isArray(item.session) ? item.session[0] ?? null : item.session
     if (session) {
-      if (Array.isArray(session.court)) session = { ...session, court: session.court[0] ?? null }
-      if (Array.isArray(session.coach)) session = { ...session, coach: session.coach[0] ?? null }
+      const court = session.court
+      const coach = session.coach
+      if (Array.isArray(court)) session = { ...session, court: court[0] ?? null }
+      if (Array.isArray(coach)) session = { ...session, coach: coach[0] ?? null }
     }
     return { ...item, session }
   })
 
   // Group by date; each item has { session, status, absent_reason, isCancelled }
-  const groupedSessions: { [key: string]: { session: any; status: string; absent_reason: string | null; isCancelled: boolean }[] } = {}
-  normalizedRows?.forEach((item: any) => {
+  const groupedSessions: { [key: string]: { session: ScheduleSessionData; status: string; absent_reason: string | null; isCancelled: boolean }[] } = {}
+  normalizedRows?.forEach((item) => {
     if (item.session?.date) {
       const date = item.session.date
       if (!groupedSessions[date]) {
@@ -151,7 +178,7 @@ export default async function PlayerSchedulePage() {
 
               {/* Sessions */}
               <div className="divide-y divide-stone-100">
-                {groupedSessions[date].map((item: { session: any; status: string; absent_reason: string | null; isCancelled: boolean }) => {
+                {groupedSessions[date].map((item: { session: ScheduleSessionData; status: string; absent_reason: string | null; isCancelled: boolean }) => {
                   const session = item.session
                   const isAbsent = item.status === 'absent'
                   const isPastSession = isPast(session.date)
@@ -171,7 +198,7 @@ export default async function PlayerSchedulePage() {
                       {/* Session Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${isCancelled ? 'bg-red-100 text-red-700' : getSessionTypeColor(session.session_type)}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${isCancelled ? 'bg-red-100 text-red-700' : getSessionTypeColor(session.session_type ?? '')}`}>
                             {isCancelled ? 'Cancelled' : (session.session_type?.replace('_', ' ') || 'Training')}
                           </span>
                           {!isCancelled && isAbsent && (

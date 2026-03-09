@@ -3,12 +3,31 @@ import { createClient } from '@/lib/supabase/server'
 import { Trophy, MapPin, Calendar, ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 
+interface TournamentData {
+  id: string
+  name: string
+  start_date: string
+  end_date: string
+  location: string
+  surface: string | null
+  category: string | null
+}
+
+interface TournamentAssignmentRow {
+  tournament: TournamentData | TournamentData[] | null
+}
+
+interface MatchResultRow {
+  tournament_id: string
+  result: string
+}
+
 export default async function PlayerTournamentsPage() {
   const profile = await getUserProfile()
   const playerId = profile?.player_id || ''
 
-  let tournaments: any[] | null = null
-  let matchResults: any[] | null = null
+  let tournaments: TournamentAssignmentRow[] | null = null
+  let matchResults: MatchResultRow[] | null = null
 
   try {
     const supabase = await createClient()
@@ -29,14 +48,14 @@ export default async function PlayerTournamentsPage() {
       `)
       .eq('player_id', playerId)
       .order('tournament(start_date)', { ascending: false })
-    tournaments = t as any[] | null
+    tournaments = t as TournamentAssignmentRow[] | null
 
     // Get match results for this player
     const { data: m } = await supabase
       .from('match_results')
       .select('tournament_id, result')
       .eq('player_id', playerId)
-    matchResults = m as any[] | null
+    matchResults = m as MatchResultRow[] | null
   } catch {
     // Query failed — show empty state
   }
@@ -88,12 +107,14 @@ export default async function PlayerTournamentsPage() {
   }
 
   // Separate tournaments into upcoming and past
-  const upcomingTournaments = tournaments?.filter((t: any) =>
-    isUpcoming(t.tournament?.start_date) || isOngoing(t.tournament?.start_date, t.tournament?.end_date)
-  ) || []
-  const pastTournaments = tournaments?.filter((t: any) =>
-    !isUpcoming(t.tournament?.start_date) && !isOngoing(t.tournament?.start_date, t.tournament?.end_date)
-  ) || []
+  const upcomingTournaments = tournaments?.filter((t) => {
+    const tournament = Array.isArray(t.tournament) ? t.tournament[0] : t.tournament
+    return tournament && (isUpcoming(tournament.start_date) || isOngoing(tournament.start_date, tournament.end_date))
+  }) || []
+  const pastTournaments = tournaments?.filter((t) => {
+    const tournament = Array.isArray(t.tournament) ? t.tournament[0] : t.tournament
+    return tournament && !isUpcoming(tournament.start_date) && !isOngoing(tournament.start_date, tournament.end_date)
+  }) || []
 
   return (
     <div className="p-8">
@@ -110,12 +131,13 @@ export default async function PlayerTournamentsPage() {
         <h2 className="text-lg font-semibold text-stone-800 mb-4">Upcoming & Ongoing</h2>
         {upcomingTournaments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingTournaments.map((item: any, index: number) => {
-              const stats = getTournamentStats(item.tournament?.id)
+            {upcomingTournaments.map((item, index) => {
+              const tournament = Array.isArray(item.tournament) ? item.tournament[0] : item.tournament
+              const stats = getTournamentStats(tournament?.id ?? '')
               return (
                 <Link
                   key={index}
-                  href={`/dashboard/player/tournaments/${item.tournament?.id}`}
+                  href={`/dashboard/player/tournaments/${tournament?.id}`}
                   className="bg-white rounded-xl border border-stone-200 p-6 hover:border-red-200 hover:shadow-md transition-all"
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -124,23 +146,23 @@ export default async function PlayerTournamentsPage() {
                         <Trophy className="w-6 h-6 text-amber-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-stone-800">{item.tournament?.name}</h3>
-                        <p className={`text-sm font-medium ${getSurfaceColor(item.tournament?.surface)}`}>
-                          {item.tournament?.surface || 'Surface TBD'} • {item.tournament?.category || 'Open'}
+                        <h3 className="font-semibold text-stone-800">{tournament?.name}</h3>
+                        <p className={`text-sm font-medium ${getSurfaceColor(tournament?.surface ?? '')}`}>
+                          {tournament?.surface || 'Surface TBD'} • {tournament?.category || 'Open'}
                         </p>
                       </div>
                     </div>
-                    {getStatusBadge(item.tournament?.start_date, item.tournament?.end_date)}
+                    {tournament && getStatusBadge(tournament.start_date, tournament.end_date)}
                   </div>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-stone-500">
                       <Calendar className="w-4 h-4" />
-                      <span>{formatDate(item.tournament?.start_date)} - {formatDate(item.tournament?.end_date)}</span>
+                      <span>{tournament && formatDate(tournament.start_date)} - {tournament && formatDate(tournament.end_date)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-stone-500">
                       <MapPin className="w-4 h-4" />
-                      <span>{item.tournament?.location || 'Location TBD'}</span>
+                      <span>{tournament?.location || 'Location TBD'}</span>
                     </div>
                   </div>
 
@@ -174,21 +196,22 @@ export default async function PlayerTournamentsPage() {
         {pastTournaments.length > 0 ? (
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
             <div className="divide-y divide-stone-100">
-              {pastTournaments.map((item: any, index: number) => {
-                const stats = getTournamentStats(item.tournament?.id)
+              {pastTournaments.map((item, index) => {
+                const tournament = Array.isArray(item.tournament) ? item.tournament[0] : item.tournament
+                const stats = getTournamentStats(tournament?.id ?? '')
                 return (
                   <Link
                     key={index}
-                    href={`/dashboard/player/tournaments/${item.tournament?.id}`}
+                    href={`/dashboard/player/tournaments/${tournament?.id}`}
                     className="flex items-center gap-4 p-4 hover:bg-stone-50 transition-colors"
                   >
                     <div className="w-10 h-10 bg-stone-100 rounded-lg flex items-center justify-center">
                       <Trophy className="w-5 h-5 text-stone-400" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-stone-800">{item.tournament?.name}</h3>
+                      <h3 className="font-medium text-stone-800">{tournament?.name}</h3>
                       <p className="text-sm text-stone-500">
-                        {formatDate(item.tournament?.start_date)} • {item.tournament?.location}
+                        {tournament && formatDate(tournament.start_date)} • {tournament?.location}
                       </p>
                     </div>
                     <div className="text-right">

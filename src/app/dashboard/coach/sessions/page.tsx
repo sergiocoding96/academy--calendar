@@ -4,13 +4,34 @@ import { Calendar, Clock, MapPin, Users, Star, ChevronRight } from 'lucide-react
 import Link from 'next/link'
 import { formatTime } from '@/lib/utils'
 
+interface SessionRatingRow {
+  overall_rating: number | null
+  intensity_level: number | null
+}
+
+interface SessionPlayerRow {
+  player: { id: string; name: string } | { id: string; name: string }[] | null
+  session_rating?: SessionRatingRow[] | null
+}
+
+interface CoachSessionRow {
+  id: string
+  date: string
+  start_time: string
+  end_time: string
+  session_type: string | null
+  notes: string | null
+  court: { name: string } | { name: string }[] | null
+  session_players: SessionPlayerRow[]
+}
+
 export default async function CoachSessionsPage() {
   const profile = await getUserProfile()
   const supabase = await createClient()
 
   const coachId = profile?.coach_id || ''
 
-  let sessions: any[] | null = null
+  let sessions: CoachSessionRow[] | null = null
   try {
     // Try with session_ratings join first
     const { data, error } = await supabase
@@ -47,9 +68,9 @@ export default async function CoachSessionsPage() {
         .eq('coach_id', coachId)
         .order('date', { ascending: false })
         .limit(50)
-      sessions = fallback as any[] | null
+      sessions = fallback as unknown as CoachSessionRow[] | null
     } else {
-      sessions = data as any[] | null
+      sessions = data as unknown as CoachSessionRow[] | null
     }
   } catch {
     // PostgREST throws when table doesn't exist — fallback
@@ -64,15 +85,15 @@ export default async function CoachSessionsPage() {
         .eq('coach_id', coachId)
         .order('date', { ascending: false })
         .limit(50)
-      sessions = data as any[] | null
+      sessions = data as unknown as CoachSessionRow[] | null
     } catch {
       sessions = null
     }
   }
 
   // Group sessions by date
-  const groupedSessions: { [key: string]: any[] } = {}
-  sessions?.forEach((session: any) => {
+  const groupedSessions: { [key: string]: CoachSessionRow[] } = {}
+  sessions?.forEach((session) => {
     const date = session.date
     if (!groupedSessions[date]) {
       groupedSessions[date] = []
@@ -125,19 +146,19 @@ export default async function CoachSessionsPage() {
 
               {/* Sessions */}
               <div className="divide-y divide-stone-100">
-                {groupedSessions[date].map((session: any) => {
+                {groupedSessions[date].map((session) => {
                   const isCancelled = session.notes?.includes('[Cancelled]')
                   // Calculate average rating
                   const ratings = session.session_players
-                    ?.filter((sp: any) => sp.session_rating?.length > 0)
-                    .map((sp: any) => sp.session_rating[0]?.overall_rating)
-                    .filter(Boolean)
-                  const avgRating = ratings?.length > 0
-                    ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1)
+                    ?.filter((sp: SessionPlayerRow) => (sp.session_rating?.length ?? 0) > 0)
+                    .map((sp: SessionPlayerRow) => sp.session_rating?.[0]?.overall_rating)
+                    .filter((r): r is number => r != null)
+                  const avgRating = ratings && ratings.length > 0
+                    ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
                     : null
 
                   const ratedCount = session.session_players?.filter(
-                    (sp: any) => sp.session_rating?.length > 0
+                    (sp: SessionPlayerRow) => (sp.session_rating?.length ?? 0) > 0
                   ).length || 0
                   const totalPlayers = session.session_players?.length || 0
 

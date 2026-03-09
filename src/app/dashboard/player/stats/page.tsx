@@ -3,14 +3,62 @@ import { createClient } from '@/lib/supabase/server'
 import { TrendingUp, Trophy, Target, Clock, Dumbbell, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
+interface MatchResultRow {
+  id: string
+  player_id: string
+  tournament_id: string
+  result: string
+  score: string | null
+  round: string | null
+  match_date: string
+  holds: number | null
+  breaks: number | null
+  aces: number | null
+  double_faults: number | null
+  winners: number | null
+  unforced_errors: number | null
+}
+
+interface SessionRatingRow {
+  id: string
+  player_id: string
+  session_id: string
+  overall_rating: number | null
+  intensity_level: number | null
+  duration_minutes: number | null
+  created_at: string
+  session: {
+    date: string
+    start_time: string
+    end_time: string
+    session_type: string | null
+  } | null
+}
+
+interface GoalRow {
+  id: string
+  status: string
+}
+
+interface FitnessLogRow {
+  id: string
+  player_id: string
+  log_date: string
+  category: string
+  exercise_name: string
+  rpe: number | null
+  duration_seconds: number | null
+  distance_meters: number | null
+}
+
 export default async function PlayerStatsPage() {
   const profile = await getUserProfile()
   const playerId = profile?.player_id || ''
 
-  let matchResults: any[] | null = null
-  let sessionRatings: any[] | null = null
-  let goals: any[] | null = null
-  let fitnessLogs: any[] | null = null
+  let matchResults: MatchResultRow[] | null = null
+  let sessionRatings: SessionRatingRow[] | null = null
+  let goals: GoalRow[] | null = null
+  let fitnessLogs: FitnessLogRow[] | null = null
 
   try {
     const supabase = await createClient()
@@ -21,7 +69,7 @@ export default async function PlayerStatsPage() {
       .select('*')
       .eq('player_id', playerId)
       .order('match_date', { ascending: false })
-    matchResults = r1.data as any[] | null
+    matchResults = r1.data as MatchResultRow[] | null
 
     // Get session ratings for training load
     const r2 = await supabase
@@ -32,14 +80,14 @@ export default async function PlayerStatsPage() {
       `)
       .eq('player_id', playerId)
       .order('created_at', { ascending: false })
-    sessionRatings = r2.data as any[] | null
+    sessionRatings = r2.data as SessionRatingRow[] | null
 
     // Get goals for completion rate
     const r3 = await supabase
       .from('goals')
       .select('*')
       .eq('player_id', playerId)
-    goals = r3.data as any[] | null
+    goals = r3.data as GoalRow[] | null
 
     // Get fitness logs for load tracking
     const r4 = await supabase
@@ -47,7 +95,7 @@ export default async function PlayerStatsPage() {
       .select('*')
       .eq('player_id', playerId)
       .order('log_date', { ascending: false })
-    fitnessLogs = r4.data as any[] | null
+    fitnessLogs = r4.data as FitnessLogRow[] | null
   } catch {
     // Query failed — show empty state
   }
@@ -77,7 +125,7 @@ export default async function PlayerStatsPage() {
 
     // From session ratings
     sessionRatings?.forEach(rating => {
-      if (rating.session?.date >= weekStart) {
+      if ((rating.session?.date ?? '') >= weekStart) {
         totalMinutes += rating.duration_minutes || 0
       }
     })
@@ -123,9 +171,9 @@ export default async function PlayerStatsPage() {
       totalMinutes += dayLogs.reduce((acc, l) => acc + ((l.duration_seconds || 0) / 60), 0)
 
       const avgIntensity = (() => {
-        const allRatings = [
-          ...daySessions.map(s => s.intensity_level).filter(Boolean),
-          ...dayLogs.map(l => l.rpe).filter(Boolean)
+        const allRatings: number[] = [
+          ...daySessions.map(s => s.intensity_level).filter((v): v is number => v != null),
+          ...dayLogs.map(l => l.rpe).filter((v): v is number => v != null)
         ]
         if (allRatings.length === 0) return 0
         return allRatings.reduce((a, b) => a + b, 0) / allRatings.length

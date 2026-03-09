@@ -5,6 +5,35 @@ import Link from 'next/link'
 import { PlayerDashboardWrapper } from '@/components/dashboard/player/player-dashboard-wrapper'
 import { formatTime } from '@/lib/utils'
 
+interface PlayerSessionRow {
+  status: string | null
+  session: {
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+    session_type: string | null
+    notes: string | null
+    court: { name: string } | { name: string }[] | null
+  } | {
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+    session_type: string | null
+    notes: string | null
+    court: { name: string } | { name: string }[] | null
+  }[] | null
+}
+
+interface TournamentRow {
+  id: string
+  name: string
+  start_date: string
+  end_date: string
+  location: string
+}
+
 export default async function PlayerDashboardPage() {
   const profile = await getUserProfile()
   const supabase = await createClient()
@@ -13,9 +42,9 @@ export default async function PlayerDashboardPage() {
   const today = new Date().toISOString().split('T')[0]
 
   // Fetch in parallel; if tables don't exist or RLS blocks, use empty data so page still loads
-  let upcomingSessions: any[] | null = null
+  let upcomingSessions: { status: string | null; session: { id: string; date: string; start_time: string; end_time: string; session_type: string | null; notes: string | null; court: { name: string } | { name: string }[] | null } | null }[] | null = null
   let activeGoalsCount: number | null = 0
-  let upcomingTournaments: any[] | null = null
+  let upcomingTournaments: TournamentRow[] | null = null
 
   if (playerId) {
     try {
@@ -54,17 +83,17 @@ export default async function PlayerDashboardPage() {
 
       // Filter upcoming sessions in JS (workaround for missing relation filter support)
       // Exclude cancelled sessions and normalize PostgREST array joins
-      const allSessions = (sessionsRes.data as any[] | null) ?? []
+      const allSessions = (sessionsRes.data as PlayerSessionRow[] | null) ?? []
       upcomingSessions = allSessions
         .map((item) => {
           const s = Array.isArray(item.session) ? item.session[0] : item.session
           return { ...item, session: s }
         })
-        .filter((item) => item.session?.date >= today && !item.session?.notes?.includes('[Cancelled]') && item.status !== 'cancelled')
+        .filter((item) => (item.session?.date ?? '') >= today && !item.session?.notes?.includes('[Cancelled]') && item.status !== 'cancelled')
         .sort((a, b) => (a.session?.date ?? '').localeCompare(b.session?.date ?? ''))
         .slice(0, 5)
       activeGoalsCount = goalsRes.count ?? 0
-      upcomingTournaments = (tournamentsRes.data as any[] | null) ?? null
+      upcomingTournaments = (tournamentsRes.data as TournamentRow[] | null) ?? null
     } catch {
       // Swallow errors so the dashboard still loads with empty state
       upcomingSessions = null
@@ -175,7 +204,7 @@ export default async function PlayerDashboardPage() {
 
           {upcomingSessions && upcomingSessions.length > 0 ? (
             <div className="space-y-3">
-              {upcomingSessions.map((item: any) => (
+              {upcomingSessions.map((item) => (
                 <div
                   key={item.session?.id ?? `session-${crypto.randomUUID()}`}
                   className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
@@ -188,7 +217,7 @@ export default async function PlayerDashboardPage() {
                       {item.session?.session_type?.replaceAll('_', ' ') || 'Training'}
                     </p>
                     <p className="text-sm text-stone-500">
-                      {formatDate(item.session?.date)} • {formatTime(item.session?.start_time)} - {formatTime(item.session?.end_time)}
+                      {formatDate(item.session?.date ?? '')} • {formatTime(item.session?.start_time ?? '')} - {formatTime(item.session?.end_time ?? '')}
                     </p>
                   </div>
                   <span className="text-xs text-stone-400">
@@ -216,7 +245,7 @@ export default async function PlayerDashboardPage() {
 
           {upcomingTournaments && upcomingTournaments.length > 0 ? (
             <div className="space-y-3">
-              {upcomingTournaments.map((tournament: any) => (
+              {upcomingTournaments.map((tournament) => (
                 <div
                   key={tournament.id}
                   className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"

@@ -3,6 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { Dumbbell, Plus, Calendar, Flame, ChevronRight, Activity } from 'lucide-react'
 import Link from 'next/link'
 
+interface FitnessLogRow {
+  id: string
+  player_id: string
+  log_date: string
+  category: string
+  exercise_name: string
+  sets: number | null
+  reps: number | null
+  weight_kg: number | null
+  duration_seconds: number | null
+  distance_meters: number | null
+  rpe: number | null
+}
+
 export default async function PlayerFitnessPage() {
   const profile = await getUserProfile()
   const supabase = await createClient()
@@ -10,7 +24,7 @@ export default async function PlayerFitnessPage() {
   const playerId = profile?.player_id || ''
 
   // Get fitness logs for this player (table may not exist yet)
-  let fitnessLogs: any[] | null = null
+  let fitnessLogs: FitnessLogRow[] | null = null
   try {
     const { data } = await supabase
       .from('fitness_logs')
@@ -18,14 +32,14 @@ export default async function PlayerFitnessPage() {
       .eq('player_id', playerId)
       .order('log_date', { ascending: false })
       .limit(50)
-    fitnessLogs = data as any[] | null
+    fitnessLogs = data as FitnessLogRow[] | null
   } catch {
     // Table may not exist yet — show empty state
   }
 
   // Group logs by date
-  const groupedLogs: { [key: string]: any[] } = {}
-  fitnessLogs?.forEach((log: any) => {
+  const groupedLogs: { [key: string]: FitnessLogRow[] } = {}
+  fitnessLogs?.forEach((log) => {
     const date = log.log_date
     if (!groupedLogs[date]) {
       groupedLogs[date] = []
@@ -75,7 +89,7 @@ export default async function PlayerFitnessPage() {
     }
   }
 
-  const formatExerciseDetails = (log: any) => {
+  const formatExerciseDetails = (log: FitnessLogRow) => {
     const parts = []
     if (log.sets && log.reps) {
       parts.push(`${log.sets}×${log.reps}`)
@@ -174,7 +188,7 @@ export default async function PlayerFitnessPage() {
 
               {/* Exercises */}
               <div className="divide-y divide-stone-100">
-                {groupedLogs[date].map((log: any) => (
+                {groupedLogs[date].map((log) => (
                   <div key={log.id} className="p-4 hover:bg-stone-50 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${

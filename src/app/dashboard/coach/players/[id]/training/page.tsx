@@ -6,6 +6,7 @@ import { ChevronLeft, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { TrainingLoadForm } from '@/features/player-database/components'
 import { usePlayer } from '@/features/player-database/hooks'
+import type { PlayerWithDetails, TrainingLoad } from '@/features/player-database/types'
 import { cn } from '@/lib/utils'
 
 export default function CoachPlayerTrainingPage() {
@@ -40,7 +41,7 @@ export default function CoachPlayerTrainingPage() {
     )
   }
 
-  const trainingLoads = (player as any).training_loads || []
+  const trainingLoads: TrainingLoad[] = (player as PlayerWithDetails).training_loads || []
 
   // Sort by date, newest first
   const sortedLoads = [...trainingLoads].sort(
@@ -56,7 +57,7 @@ export default function CoachPlayerTrainingPage() {
     ? Math.round(trainingLoads.reduce((sum: number, l: any) => sum + l.duration_minutes, 0) / trainingLoads.length)
     : 0
 
-  const weekLoads = trainingLoads.filter((l: any) => {
+  const weekLoads = trainingLoads.filter((l: TrainingLoad) => {
     const date = new Date(l.session_date)
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
@@ -138,7 +139,7 @@ export default function CoachPlayerTrainingPage() {
 
         {sortedLoads.length > 0 ? (
           <div className="divide-y divide-stone-100">
-            {sortedLoads.map((load: any) => (
+            {sortedLoads.map((load: TrainingLoad) => (
               <div key={load.id} className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className={cn(

@@ -52,7 +52,7 @@ export default function TournamentDetailPage() {
     opponent_name: '',
     round: '',
     match_date: '',
-    result: 'win' as const,
+    result: 'win' as 'win' | 'loss' | 'walkover' | 'retired',
     score: '',
     holds: '',
     breaks: '',
@@ -290,7 +290,7 @@ export default function TournamentDetailPage() {
                 <label className="block text-sm font-medium text-stone-700 mb-1">Result</label>
                 <select
                   value={formData.result}
-                  onChange={(e) => setFormData({ ...formData, result: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, result: e.target.value as 'win' | 'loss' | 'walkover' | 'retired' })}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 >
                   <option value="win">Win</option>
