@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = 'isGuest=; path=/; max-age=0'
       }
     } else {
-      await supabase.auth.signOut({ scope: 'local' })
+      await supabase.auth.signOut()
     }
     setUser(null)
     setProfile(null)
