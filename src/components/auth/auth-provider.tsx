@@ -88,6 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     userSignedOutRef.current = true
+    // Clear React state immediately so the UI updates
+    setUser(null)
+    setProfile(null)
+    setLoading(false)
+
     if (isGuestRef.current) {
       isGuestRef.current = false
       setIsGuest(false)
@@ -96,11 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = 'isGuest=; path=/; max-age=0'
       }
     } else {
-      await supabase.auth.signOut()
+      // Use server-side signout to reliably clear httpOnly cookies.
+      // The browser client can't delete cookies the middleware set.
+      try {
+        await fetch('/api/auth/signout', { method: 'POST' })
+      } catch {
+        // Network error — fall back to client-side signout
+        try { await supabase.auth.signOut() } catch { /* ignore */ }
+      }
     }
-    setUser(null)
-    setProfile(null)
-    setLoading(false)
   }, [supabase])
 
   // Control auto-refresh based on tab visibility.

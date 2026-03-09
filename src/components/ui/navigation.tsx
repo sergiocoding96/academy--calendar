@@ -28,7 +28,7 @@ export function Navigation() {
   const handleSignOut = async () => {
     setDropdownOpen(false)
     await signOut()
-    router.push('/login')
+    window.location.href = '/login'
   }
 
   // Close dropdown when clicking outside
