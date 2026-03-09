@@ -29,14 +29,20 @@ const navItems = [
   { href: '/dashboard/player/stats', label: 'My Stats', icon: BarChart3 },
 ]
 
-export function PlayerSidebar() {
+interface PlayerSidebarProps {
+  serverProfile?: { full_name: string | null; email: string | null } | null
+}
+
+export function PlayerSidebar({ serverProfile }: PlayerSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { profile, signOut } = useAuth()
 
-  const handleSignOut = () => {
-    // Don't await — signOut clears state instantly, router navigates immediately
-    signOut()
+  const displayName = profile?.full_name || serverProfile?.full_name || 'Player'
+  const displayEmail = profile?.email || serverProfile?.email
+
+  const handleSignOut = async () => {
+    await signOut()
     router.push('/login')
   }
 
@@ -90,9 +96,9 @@ export function PlayerSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-stone-800 truncate">
-              {profile?.full_name || 'Player'}
+              {displayName}
             </p>
-            <p className="text-xs text-stone-500 truncate">{profile?.email}</p>
+            <p className="text-xs text-stone-500 truncate">{displayEmail}</p>
           </div>
         </div>
         <button

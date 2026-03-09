@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { CoachSidebar } from '@/components/dashboard/coach/coach-sidebar'
-import { requireRole } from '@/lib/auth'
+import { getUserProfile, requireRole } from '@/lib/auth'
 
 function isRedirectError(err: unknown): boolean {
   if (err && typeof err === 'object' && 'digest' in err) {
@@ -23,9 +23,11 @@ export default async function CoachDashboardLayout({
       await requireRole(['coach', 'admin'])
     }
 
+    const profile = isGuest ? null : await getUserProfile()
+
     return (
       <div className="flex h-screen bg-stone-50 overflow-hidden">
-        <CoachSidebar />
+        <CoachSidebar serverProfile={profile ? { full_name: profile.full_name, email: profile.email } : null} />
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

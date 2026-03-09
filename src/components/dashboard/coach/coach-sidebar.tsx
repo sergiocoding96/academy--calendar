@@ -28,11 +28,19 @@ const navItems = [
   { href: '/dashboard/coach/tournaments', label: 'Tournaments', icon: Trophy },
 ]
 
-export function CoachSidebar() {
+interface CoachSidebarProps {
+  serverProfile?: { full_name: string | null; email: string | null } | null
+}
+
+export function CoachSidebar({ serverProfile }: CoachSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { profile, signOut } = useAuth()
   const [pendingCount, setPendingCount] = useState(0)
+
+  // Use client profile once loaded, fall back to server-provided profile
+  const displayName = profile?.full_name || serverProfile?.full_name || 'Coach'
+  const displayEmail = profile?.email || serverProfile?.email
 
   useEffect(() => {
     const supabase = createBrowserClient(
@@ -58,9 +66,8 @@ export function CoachSidebar() {
     fetchPendingCount()
   }, [])
 
-  const handleSignOut = () => {
-    // Don't await — signOut clears state instantly, router navigates immediately
-    signOut()
+  const handleSignOut = async () => {
+    await signOut()
     router.push('/login')
   }
 
@@ -126,9 +133,9 @@ export function CoachSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-stone-800 truncate">
-              {profile?.full_name || 'Coach'}
+              {displayName}
             </p>
-            <p className="text-xs text-stone-500 truncate">{profile?.email}</p>
+            <p className="text-xs text-stone-500 truncate">{displayEmail}</p>
           </div>
         </div>
         <button

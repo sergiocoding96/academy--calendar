@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { PlayerSidebar } from '@/components/dashboard/player/player-sidebar'
-import { requireRole } from '@/lib/auth'
+import { getUserProfile, requireRole } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +19,11 @@ export default async function PlayerDashboardLayout({
 }) {
   try {
     await requireRole(['player'])
+    const profile = await getUserProfile()
+
     return (
       <div className="flex min-h-screen bg-stone-50">
-        <PlayerSidebar />
+        <PlayerSidebar serverProfile={profile ? { full_name: profile.full_name, email: profile.email } : null} />
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
