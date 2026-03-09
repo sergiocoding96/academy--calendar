@@ -184,8 +184,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
           setProfile(null)
           setLoading(false)
+          // Only auto-redirect if sign-out wasn't user-initiated.
+          // User-initiated sign-outs (sidebar button) do their own
+          // hard navigation after awaiting signOut().
+          if (!userSignedOutRef.current) {
+            router.push('/login')
+          }
           userSignedOutRef.current = false
-          router.push('/login')
           return
         }
 

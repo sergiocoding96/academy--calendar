@@ -43,7 +43,7 @@ export function PlayerSidebar({ serverProfile }: PlayerSidebarProps) {
 
   const handleSignOut = async () => {
     await signOut()
-    router.push('/login')
+    window.location.href = '/login'
   }
 
   const isActive = (href: string, exact?: boolean) => {

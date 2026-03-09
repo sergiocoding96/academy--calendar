@@ -68,7 +68,9 @@ export function CoachSidebar({ serverProfile }: CoachSidebarProps) {
 
   const handleSignOut = async () => {
     await signOut()
-    router.push('/login')
+    // Hard navigation ensures cookies are flushed before the request
+    // hits the middleware. router.push() can race with cookie deletion.
+    window.location.href = '/login'
   }
 
   const isActive = (href: string, exact?: boolean) => {
