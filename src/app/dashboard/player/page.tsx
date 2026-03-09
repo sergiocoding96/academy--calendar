@@ -25,12 +25,14 @@ export default async function PlayerDashboardPage() {
         supabase
           .from('session_players')
           .select(`
+            status,
             session:sessions(
               id,
               date,
               start_time,
               end_time,
               session_type,
+              notes,
               court:courts(name)
             )
           `)
@@ -58,7 +60,7 @@ export default async function PlayerDashboardPage() {
           const s = Array.isArray(item.session) ? item.session[0] : item.session
           return { ...item, session: s }
         })
-        .filter((item) => item.session?.date >= today && !item.session?.notes?.includes('[Cancelled]'))
+        .filter((item) => item.session?.date >= today && !item.session?.notes?.includes('[Cancelled]') && item.status !== 'cancelled')
         .sort((a, b) => (a.session?.date ?? '').localeCompare(b.session?.date ?? ''))
         .slice(0, 5)
       activeGoalsCount = goalsRes.count ?? 0
