@@ -18,7 +18,7 @@ export default async function CoachAttendancePage() {
       // Admins see all players
       const { data, error } = await supabase
         .from('players')
-        .select('*')
+        .select('id, full_name, category, current_utr, photo_url, is_active')
         .order('full_name')
 
       if (error) throw error
@@ -27,7 +27,7 @@ export default async function CoachAttendancePage() {
       // Coaches see only their assigned players
       const { data, error } = await supabase
         .from('players')
-        .select('*')
+        .select('id, full_name, category, current_utr, photo_url, is_active')
         .eq('coach_id', profile.coach_id)
         .order('full_name')
 

@@ -87,13 +87,15 @@ export default function CoachSessionDetailPage() {
       defaultDuration = (endH * 60 + endM) - (startH * 60 + startM)
     }
 
-    // Fetch players in this session with their ratings
+    // Fetch players in this session with their ratings in a single query
     const { data: sessionPlayers } = await supabase
       .from('session_players')
       .select(`
-        player:players(id, name, email)
+        player:players(id, name, email),
+        session_ratings(id, overall_rating, effort_rating, technique_rating, attitude_rating, tactical_rating, duration_minutes, intensity_level, notes)
       `)
-      .eq('session_id', params.id) as { data: any[] | null }
+      .eq('session_id', params.id)
+      .eq('session_ratings.session_id', params.id) as { data: any[] | null }
 
     if (sessionPlayers) {
       const playersWithRatings: PlayerWithRating[] = []
@@ -102,19 +104,9 @@ export default function CoachSessionDetailPage() {
       for (const sp of sessionPlayers) {
         if (!sp.player) continue
 
-        // Fetch rating for this player (table may not exist yet)
-        let rating: any = null
-        try {
-          const { data } = await supabase
-            .from('session_ratings')
-            .select('*')
-            .eq('session_id', params.id as string)
-            .eq('player_id', sp.player.id)
-            .single()
-          rating = data
-        } catch {
-          // session_ratings table may not exist
-        }
+        // Rating comes from the joined session_ratings (array, take first match)
+        const ratingsArr = sp.session_ratings || []
+        const rating = ratingsArr.length > 0 ? ratingsArr[0] : null
 
         playersWithRatings.push({
           player: sp.player,
