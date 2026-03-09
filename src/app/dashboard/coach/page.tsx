@@ -89,13 +89,15 @@ export default async function CoachDashboardPage() {
         `)
         .eq('coach_id', coachId)
         .eq('date', today)
+        .not('notes', 'like', '%[Cancelled]%')
         .order('start_time', { ascending: true }),
       supabase
         .from('sessions')
         .select('*', { count: 'exact', head: true })
         .eq('coach_id', coachId)
         .gte('date', today)
-        .lte('date', weekEndStr),
+        .lte('date', weekEndStr)
+        .not('notes', 'like', '%[Cancelled]%'),
       supabase
         .from('players')
         .select('id, full_name, email')

@@ -85,10 +85,7 @@ export function SessionGrid() {
     }
 
     if (profile.role === 'coach' || profile.role === 'admin') {
-      setAddError(null)
-      setAddReason('')
-      setAddDate(selectedDay)
-      setAddOpen(true)
+      router.push('/dashboard/coach/schedule')
       return
     }
 
