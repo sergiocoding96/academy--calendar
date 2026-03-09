@@ -28,14 +28,14 @@ export async function PATCH(
   if (body.notes !== undefined) updates.notes = body.notes
 
   if (Object.keys(updates).length > 0) {
-    const { error } = await (supabase as any).from('master_schedule').update(updates).eq('id', id)
+    const { error } = await supabase.from('master_schedule').update(updates).eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   if (Array.isArray(body.player_ids)) {
-    await (supabase as any).from('master_schedule_players').delete().eq('master_schedule_id', id)
+    await supabase.from('master_schedule_players').delete().eq('master_schedule_id', id)
     if (body.player_ids.length > 0) {
-      await (supabase as any).from('master_schedule_players').insert(
+      await supabase.from('master_schedule_players').insert(
         body.player_ids.map((player_id) => ({ master_schedule_id: id, player_id }))
       )
     }
@@ -55,7 +55,7 @@ export async function DELETE(
 
   const { id } = await params
   const supabase = await createClient()
-  const { error } = await (supabase as any).from('master_schedule').delete().eq('id', id)
+  const { error } = await supabase.from('master_schedule').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }

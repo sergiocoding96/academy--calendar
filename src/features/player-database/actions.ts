@@ -30,7 +30,7 @@ const UNAUTHORIZED = 'Unauthorized'
 const FORBIDDEN = 'You do not have access to this player'
 
 async function getServerClient() {
-  return (await createClient()) as any
+  return await createClient()
 }
 
 async function guardPlayerAccess(playerId: string): Promise<UserProfile> {

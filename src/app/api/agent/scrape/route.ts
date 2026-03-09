@@ -103,9 +103,7 @@ export async function GET(request: NextRequest) {
         raw_data: t.raw_data || {},
       }))
 
-      // Use RPC or raw insert to bypass type checking for dynamic tables
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: upsertError } = await (supabase as any)
+      const { error: upsertError } = await supabase
         .from('scraped_tournaments')
         .upsert(tournamentsData, {
           onConflict: 'id',
@@ -118,9 +116,7 @@ export async function GET(request: NextRequest) {
         results.tournamentsSaved = tournamentsData.length
       }
 
-      // Log the scrape job — field names match the ScrapeLog type in src/types/agent.ts
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('scrape_logs').insert({
+      await supabase.from('scrape_logs').insert({
         source_id: 'itf',
         status: results.errors.length === 0 ? 'completed' : 'failed',
         tournaments_found: results.tournamentsFound,
@@ -169,8 +165,7 @@ export async function POST(_request: NextRequest) {
     .eq('id', user.id)
     .maybeSingle()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!profile || !['coach', 'admin'].includes((profile as any).role)) {
+  if (!profile || !['coach', 'admin'].includes(profile.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -200,8 +195,7 @@ export async function POST(_request: NextRequest) {
         entry_deadline: t.entry_deadline || null, website: t.website || null,
         status: 'pending' as const, scraped_at: new Date().toISOString(), raw_data: t.raw_data || {},
       }))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: upsertError } = await (db as any).from('scraped_tournaments').upsert(tournamentsData, { onConflict: 'id', ignoreDuplicates: false })
+      const { error: upsertError } = await db.from('scraped_tournaments').upsert(tournamentsData, { onConflict: 'id', ignoreDuplicates: false })
       if (upsertError) results.errors.push(`Database error: ${upsertError.message}`)
       else results.tournamentsSaved = tournamentsData.length
     }

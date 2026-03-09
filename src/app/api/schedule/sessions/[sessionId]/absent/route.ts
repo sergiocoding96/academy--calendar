@@ -24,7 +24,7 @@ export async function POST(
 
   const supabase = await createClient()
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('session_players')
     .update({
       status: 'absent',
@@ -53,12 +53,12 @@ export async function POST(
     )
   }
 
-  const { data: session } = await (supabase as any)
+  const { data: session } = await supabase
     .from('sessions')
     .select('date, start_time, end_time, session_type, court:courts(name)')
     .eq('id', sessionId)
     .single()
-  const { data: player } = await (supabase as any)
+  const { data: player } = await supabase
     .from('players')
     .select('name, full_name')
     .eq('id', profile.player_id)

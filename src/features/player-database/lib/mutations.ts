@@ -26,9 +26,8 @@ import type {
   AttendanceUpdate
 } from '../types'
 
-// Helper to get untyped client for mutations (works around RLS typing issues)
 function getClient() {
-  return createClient() as any
+  return createClient()
 }
 
 // Player Mutations

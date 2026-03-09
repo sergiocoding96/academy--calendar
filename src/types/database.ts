@@ -18,7 +18,7 @@ export type WhereaboutsType = 'tournament' | 'holiday' | 'camp' | 'injured' | 'o
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused' | 'tournament' | 'injured' | 'holiday'
 export type ScheduleStatus = 'draft' | 'published' | 'archived'
 export type SessionStatus = 'scheduled' | 'completed' | 'cancelled'
-export type SessionPlayerStatus = 'confirmed' | 'cancelled' | 'no_show' | 'completed'
+export type SessionPlayerStatus = 'confirmed' | 'cancelled' | 'no_show' | 'completed' | 'absent' | 'pending'
 export type ChangeRequestStatus = 'pending' | 'approved' | 'rejected'
 export type VehicleStatus = 'available' | 'in_transit' | 'unavailable' | 'maintenance'
 export type CardStatus = 'at_base' | 'with_coach' | 'at_tournament'
@@ -73,6 +73,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -83,6 +84,7 @@ export interface Database {
           id: string
           user_id: string | null
           profile_id: string | null
+          name: string
           full_name: string
           nickname: string | null
           date_of_birth: string | null
@@ -107,6 +109,7 @@ export interface Database {
           id?: string
           user_id?: string | null
           profile_id?: string | null
+          name?: string
           full_name: string
           nickname?: string | null
           date_of_birth?: string | null
@@ -131,6 +134,7 @@ export interface Database {
           id?: string
           user_id?: string | null
           profile_id?: string | null
+          name?: string
           full_name?: string
           nickname?: string | null
           date_of_birth?: string | null
@@ -151,6 +155,15 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "players_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coaches"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       // ==========================================
@@ -184,6 +197,7 @@ export interface Database {
           notes?: string | null
           created_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -235,6 +249,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -271,6 +286,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -316,6 +332,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -352,6 +369,7 @@ export interface Database {
           notes?: string | null
           created_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -388,6 +406,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -402,10 +421,12 @@ export interface Database {
           session_type: string | null
           location: string | null
           court: string | null
+          court_id: string | null
           coach_id: string | null
           group_name: string | null
           max_players: number | null
           is_active: boolean
+          notes: string | null
           created_at: string
           updated_at: string
         }
@@ -417,10 +438,12 @@ export interface Database {
           session_type?: string | null
           location?: string | null
           court?: string | null
+          court_id?: string | null
           coach_id?: string | null
           group_name?: string | null
           max_players?: number | null
           is_active?: boolean
+          notes?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -432,13 +455,31 @@ export interface Database {
           session_type?: string | null
           location?: string | null
           court?: string | null
+          court_id?: string | null
           coach_id?: string | null
           group_name?: string | null
           max_players?: number | null
           is_active?: boolean
+          notes?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "master_schedule_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_schedule_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coaches"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       // ==========================================
@@ -463,6 +504,15 @@ export interface Database {
           player_id?: string
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "master_schedule_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       // ==========================================
@@ -499,6 +549,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -553,6 +604,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -566,6 +618,8 @@ export interface Database {
           status: SessionPlayerStatus
           added_from_master: boolean
           notes: string | null
+          absent_at: string | null
+          absent_reason: string | null
           created_at: string
           updated_at: string
         }
@@ -576,6 +630,8 @@ export interface Database {
           status?: SessionPlayerStatus
           added_from_master?: boolean
           notes?: string | null
+          absent_at?: string | null
+          absent_reason?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -586,9 +642,27 @@ export interface Database {
           status?: SessionPlayerStatus
           added_from_master?: boolean
           notes?: string | null
+          absent_at?: string | null
+          absent_reason?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "session_players_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       // ==========================================
@@ -597,40 +671,58 @@ export interface Database {
       schedule_change_requests: {
         Row: {
           id: string
-          session_id: string
-          player_id: string
-          requested_by: string | null
-          request_type: string
-          reason: string | null
-          status: ChangeRequestStatus
-          reviewed_by: string | null
-          reviewed_at: string | null
           created_at: string
+          updated_at: string
+          proposer_id: string | null
+          change_type: string
+          target_session_id: string | null
+          reason: string
+          status: string
+          proposed_payload: Json | null
+          approved_payload: Json | null
+          approved_by: string | null
+          approved_at: string | null
+          reject_reason: string | null
         }
         Insert: {
           id?: string
-          session_id: string
-          player_id: string
-          requested_by?: string | null
-          request_type: string
-          reason?: string | null
-          status?: ChangeRequestStatus
-          reviewed_by?: string | null
-          reviewed_at?: string | null
           created_at?: string
+          updated_at?: string
+          proposer_id?: string | null
+          change_type: string
+          target_session_id?: string | null
+          reason: string
+          status?: string
+          proposed_payload?: Json | null
+          approved_payload?: Json | null
+          approved_by?: string | null
+          approved_at?: string | null
+          reject_reason?: string | null
         }
         Update: {
           id?: string
-          session_id?: string
-          player_id?: string
-          requested_by?: string | null
-          request_type?: string
-          reason?: string | null
-          status?: ChangeRequestStatus
-          reviewed_by?: string | null
-          reviewed_at?: string | null
           created_at?: string
+          updated_at?: string
+          proposer_id?: string | null
+          change_type?: string
+          target_session_id?: string | null
+          reason?: string
+          status?: string
+          proposed_payload?: Json | null
+          approved_payload?: Json | null
+          approved_by?: string | null
+          approved_at?: string | null
+          reject_reason?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_change_requests_target_session_id_fkey"
+            columns: ["target_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       // ==========================================
@@ -639,34 +731,29 @@ export interface Database {
       schedule_audit_log: {
         Row: {
           id: string
-          table_name: string
-          record_id: string
+          created_at: string
+          change_request_id: string | null
           action: string
-          old_values: Json | null
-          new_values: Json | null
-          changed_by: string | null
-          changed_at: string
+          performed_by: string | null
+          details: Json | null
         }
         Insert: {
           id?: string
-          table_name: string
-          record_id: string
+          created_at?: string
+          change_request_id?: string | null
           action: string
-          old_values?: Json | null
-          new_values?: Json | null
-          changed_by?: string | null
-          changed_at?: string
+          performed_by?: string | null
+          details?: Json | null
         }
         Update: {
           id?: string
-          table_name?: string
-          record_id?: string
+          created_at?: string
+          change_request_id?: string | null
           action?: string
-          old_values?: Json | null
-          new_values?: Json | null
-          changed_by?: string | null
-          changed_at?: string
+          performed_by?: string | null
+          details?: Json | null
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -706,6 +793,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -745,6 +833,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -790,6 +879,7 @@ export interface Database {
           notes?: string | null
           created_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -820,6 +910,7 @@ export interface Database {
           drive_time_minutes?: number | null
           created_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -865,6 +956,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -907,6 +999,7 @@ export interface Database {
           created_by?: string | null
           created_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -970,6 +1063,7 @@ export interface Database {
           is_processed?: boolean
           created_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -985,6 +1079,7 @@ export interface Database {
           start_date: string
           end_date: string
           category: string | null
+          tournament_type: string | null
           level: string | null
           surface: string | null
           coach_in_charge_id: string | null
@@ -1007,6 +1102,7 @@ export interface Database {
           start_date: string
           end_date: string
           category?: string | null
+          tournament_type?: string | null
           level?: string | null
           surface?: string | null
           coach_in_charge_id?: string | null
@@ -1029,6 +1125,7 @@ export interface Database {
           start_date?: string
           end_date?: string
           category?: string | null
+          tournament_type?: string | null
           level?: string | null
           surface?: string | null
           coach_in_charge_id?: string | null
@@ -1042,6 +1139,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -1084,6 +1182,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -1147,6 +1246,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -1183,6 +1283,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -1243,6 +1344,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
 
       // ==========================================
@@ -1282,6 +1384,702 @@ export interface Database {
           winner_id?: string | null
           created_at?: string
         }
+        Relationships: []
+      }
+
+      // ==========================================
+      // SESSIONS TABLE (actual DB table)
+      // ==========================================
+      sessions: {
+        Row: {
+          id: string
+          created_at: string
+          date: string
+          start_time: string
+          end_time: string
+          court_id: string | null
+          coach_id: string | null
+          session_type: string
+          notes: string | null
+          is_private: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          date: string
+          start_time: string
+          end_time: string
+          court_id?: string | null
+          coach_id?: string | null
+          session_type?: string
+          notes?: string | null
+          is_private?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          date?: string
+          start_time?: string
+          end_time?: string
+          court_id?: string | null
+          coach_id?: string | null
+          session_type?: string
+          notes?: string | null
+          is_private?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coaches"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      // ==========================================
+      // COURTS TABLE
+      // ==========================================
+      courts: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          surface_type: string
+          location: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          surface_type: string
+          location?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          surface_type?: string
+          location?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // COACHES TABLE
+      // ==========================================
+      coaches: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          role: string | null
+          specializations: string[] | null
+          color_code: string | null
+          email: string | null
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          role?: string | null
+          specializations?: string[] | null
+          color_code?: string | null
+          email?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          role?: string | null
+          specializations?: string[] | null
+          color_code?: string | null
+          email?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // USER PROFILES TABLE (actual DB table)
+      // ==========================================
+      user_profiles: {
+        Row: {
+          id: string
+          created_at: string
+          email: string
+          full_name: string | null
+          role: UserRole
+          player_id: string | null
+          coach_id: string | null
+          avatar_url: string | null
+        }
+        Insert: {
+          id: string
+          created_at?: string
+          email: string
+          full_name?: string | null
+          role: UserRole
+          player_id?: string | null
+          coach_id?: string | null
+          avatar_url?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          role?: UserRole
+          player_id?: string | null
+          coach_id?: string | null
+          avatar_url?: string | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // PLAYER COACH ASSIGNMENTS TABLE
+      // ==========================================
+      player_coach_assignments: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          coach_id: string
+          is_primary: boolean
+          assigned_at: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          coach_id: string
+          is_primary?: boolean
+          assigned_at?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          coach_id?: string
+          is_primary?: boolean
+          assigned_at?: string
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // SCRAPED TOURNAMENTS TABLE (agent)
+      // ==========================================
+      scraped_tournaments: {
+        Row: {
+          id: string
+          created_at: string
+          source_id: string
+          external_id: string | null
+          name: string
+          location: string | null
+          country: string | null
+          start_date: string | null
+          end_date: string | null
+          category: string | null
+          tournament_type: string | null
+          level: string | null
+          surface: string | null
+          entry_deadline: string | null
+          website: string | null
+          website_url: string | null
+          raw_data: Json | null
+          scraped_at: string
+          status: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          source_id: string
+          external_id?: string | null
+          name: string
+          location?: string | null
+          country?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          category?: string | null
+          tournament_type?: string | null
+          level?: string | null
+          surface?: string | null
+          entry_deadline?: string | null
+          website?: string | null
+          website_url?: string | null
+          raw_data?: Json | null
+          scraped_at?: string
+          status?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          source_id?: string
+          external_id?: string | null
+          name?: string
+          location?: string | null
+          country?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          category?: string | null
+          tournament_type?: string | null
+          level?: string | null
+          surface?: string | null
+          entry_deadline?: string | null
+          website?: string | null
+          website_url?: string | null
+          raw_data?: Json | null
+          scraped_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // SCRAPE LOGS TABLE (agent)
+      // ==========================================
+      scrape_logs: {
+        Row: {
+          id: string
+          created_at: string
+          source_id: string
+          status: string
+          tournaments_found: number
+          tournaments_new: number
+          errors: Json | null
+          duration_ms: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          source_id: string
+          status: string
+          tournaments_found?: number
+          tournaments_new?: number
+          errors?: Json | null
+          duration_ms?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          source_id?: string
+          status?: string
+          tournaments_found?: number
+          tournaments_new?: number
+          errors?: Json | null
+          duration_ms?: number | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // GOALS TABLE
+      // ==========================================
+      goals: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          goal_type: string
+          title: string
+          description: string | null
+          target_value: number | null
+          target_unit: string | null
+          current_value: number
+          target_date: string | null
+          status: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          goal_type: string
+          title: string
+          description?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          current_value?: number
+          target_date?: string | null
+          status?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          goal_type?: string
+          title?: string
+          description?: string | null
+          target_value?: number | null
+          target_unit?: string | null
+          current_value?: number
+          target_date?: string | null
+          status?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // GOAL PROGRESS TABLE
+      // ==========================================
+      goal_progress: {
+        Row: {
+          id: string
+          created_at: string
+          goal_id: string
+          recorded_at: string
+          value: number
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          goal_id: string
+          recorded_at?: string
+          value: number
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          goal_id?: string
+          recorded_at?: string
+          value?: number
+          notes?: string | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // FITNESS LOGS TABLE
+      // ==========================================
+      fitness_logs: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          log_date: string
+          category: string
+          exercise_name: string
+          sets: number | null
+          reps: number | null
+          weight_kg: number | null
+          duration_seconds: number | null
+          distance_meters: number | null
+          notes: string | null
+          rpe: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          log_date?: string
+          category: string
+          exercise_name: string
+          sets?: number | null
+          reps?: number | null
+          weight_kg?: number | null
+          duration_seconds?: number | null
+          distance_meters?: number | null
+          notes?: string | null
+          rpe?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          log_date?: string
+          category?: string
+          exercise_name?: string
+          sets?: number | null
+          reps?: number | null
+          weight_kg?: number | null
+          duration_seconds?: number | null
+          distance_meters?: number | null
+          notes?: string | null
+          rpe?: number | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // SESSION RATINGS TABLE
+      // ==========================================
+      session_ratings: {
+        Row: {
+          id: string
+          created_at: string
+          session_id: string
+          player_id: string
+          rated_by: string | null
+          overall_rating: number | null
+          effort_rating: number | null
+          technique_rating: number | null
+          attitude_rating: number | null
+          tactical_rating: number | null
+          notes: string | null
+          duration_minutes: number | null
+          intensity_level: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          session_id: string
+          player_id: string
+          rated_by?: string | null
+          overall_rating?: number | null
+          effort_rating?: number | null
+          technique_rating?: number | null
+          attitude_rating?: number | null
+          tactical_rating?: number | null
+          notes?: string | null
+          duration_minutes?: number | null
+          intensity_level?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          session_id?: string
+          player_id?: string
+          rated_by?: string | null
+          overall_rating?: number | null
+          effort_rating?: number | null
+          technique_rating?: number | null
+          attitude_rating?: number | null
+          tactical_rating?: number | null
+          notes?: string | null
+          duration_minutes?: number | null
+          intensity_level?: number | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // MATCH RESULTS TABLE
+      // ==========================================
+      match_results: {
+        Row: {
+          id: string
+          created_at: string
+          tournament_id: string
+          player_id: string
+          opponent_name: string
+          opponent_ranking: string | null
+          round: string | null
+          match_date: string
+          result: string
+          score: string
+          first_serve_pct: number | null
+          aces: number
+          double_faults: number
+          winners: number
+          unforced_errors: number
+          break_points_won: number
+          break_points_faced: number
+          holds: number
+          breaks: number
+          notes: string | null
+          match_type: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          tournament_id: string
+          player_id: string
+          opponent_name: string
+          opponent_ranking?: string | null
+          round?: string | null
+          match_date: string
+          result: string
+          score: string
+          first_serve_pct?: number | null
+          aces?: number
+          double_faults?: number
+          winners?: number
+          unforced_errors?: number
+          break_points_won?: number
+          break_points_faced?: number
+          holds?: number
+          breaks?: number
+          notes?: string | null
+          match_type?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          tournament_id?: string
+          player_id?: string
+          opponent_name?: string
+          opponent_ranking?: string | null
+          round?: string | null
+          match_date?: string
+          result?: string
+          score?: string
+          first_serve_pct?: number | null
+          aces?: number
+          double_faults?: number
+          winners?: number
+          unforced_errors?: number
+          break_points_won?: number
+          break_points_faced?: number
+          holds?: number
+          breaks?: number
+          notes?: string | null
+          match_type?: string
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // TOURNAMENTS TABLE (original schema)
+      // ==========================================
+      tournaments: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          location: string
+          start_date: string
+          end_date: string
+          category: string
+          level: string | null
+          entry_deadline: string | null
+          zone: number | null
+          tournament_type: string
+          notes: string | null
+          status: string
+          surface: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          location: string
+          start_date: string
+          end_date: string
+          category: string
+          level?: string | null
+          entry_deadline?: string | null
+          zone?: number | null
+          tournament_type?: string
+          notes?: string | null
+          status?: string
+          surface?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          location?: string
+          start_date?: string
+          end_date?: string
+          category?: string
+          level?: string | null
+          entry_deadline?: string | null
+          zone?: number | null
+          tournament_type?: string
+          notes?: string | null
+          status?: string
+          surface?: string | null
+        }
+        Relationships: []
+      }
+
+      // ==========================================
+      // TOURNAMENT ASSIGNMENTS TABLE
+      // ==========================================
+      tournament_assignments: {
+        Row: {
+          id: string
+          created_at: string
+          tournament_id: string
+          player_id: string | null
+          coach_id: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          tournament_id: string
+          player_id?: string | null
+          coach_id?: string | null
+          role?: string
+          status?: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          tournament_id?: string
+          player_id?: string | null
+          coach_id?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_assignments_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      // ==========================================
+      // PLAYER AVAILABILITY TABLE (agent)
+      // ==========================================
+      player_availability: {
+        Row: {
+          id: string
+          created_at: string
+          player_id: string
+          start_date: string
+          end_date: string
+          availability_type: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          player_id: string
+          start_date: string
+          end_date: string
+          availability_type: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          player_id?: string
+          start_date?: string
+          end_date?: string
+          availability_type?: string
+          notes?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -1344,19 +2142,23 @@ export type UtrMatchplayWeek = Database['public']['Tables']['utr_matchplay_weeks
 export type UtrMatch = Database['public']['Tables']['utr_matches']['Row']
 export type UtrMatchHistory = Database['public']['Tables']['utr_match_history']['Row']
 
+// New table types
+export type Session = Database['public']['Tables']['sessions']['Row']
+export type Court = Database['public']['Tables']['courts']['Row']
+export type CoachRecord = Database['public']['Tables']['coaches']['Row']
+export type PlayerCoachAssignment = Database['public']['Tables']['player_coach_assignments']['Row']
+export type ScrapedTournament = Database['public']['Tables']['scraped_tournaments']['Row']
+export type ScrapeLog = Database['public']['Tables']['scrape_logs']['Row']
+export type Goal = Database['public']['Tables']['goals']['Row']
+export type GoalProgress = Database['public']['Tables']['goal_progress']['Row']
+export type FitnessLog = Database['public']['Tables']['fitness_logs']['Row']
+export type SessionRating = Database['public']['Tables']['session_ratings']['Row']
+export type MatchResultRecord = Database['public']['Tables']['match_results']['Row']
+
 // ============================================
 // EXTENDED TYPES WITH RELATIONS
 // ============================================
-export type UserProfile = {
-  id: string
-  email: string | null
-  full_name: string | null
-  role: UserRole
-  player_id: string | null
-  coach_id: string | null
-  created_at: string
-  avatar_url: string | null
-}
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
 
 export type PlayerWithCoach = Player & {
   coach?: Profile | null

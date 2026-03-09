@@ -64,7 +64,7 @@ export async function canAccessPlayer(
   if (profile.role === 'player') return profile.player_id === playerId
   if (profile.role === 'coach' && profile.coach_id) {
     const supabase = await createClient()
-    const { data: assignment } = await (supabase as any)
+    const { data: assignment } = await supabase
       .from('player_coach_assignments')
       .select('id')
       .eq('player_id', playerId)

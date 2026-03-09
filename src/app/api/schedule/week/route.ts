@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   const { start, end } = getWeekBounds(weekResult.data)
   const supabase = await createClient()
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('sessions')
     .select(`
       id,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   const { week_start: weekStart } = parsed.data
 
   const supabase = await createClient()
-  const { data: slots, error: slotsError } = await (supabase as any)
+  const { data: slots, error: slotsError } = await supabase
     .from('master_schedule')
     .select('id, day_of_week, start_time, end_time, court_id, coach_id, session_type, notes')
     .order('day_of_week')
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   const created: string[] = []
   for (const slot of slots as { id: string; day_of_week: number; start_time: string; end_time: string; court_id: string | null; coach_id: string | null; session_type: string; notes: string | null }[]) {
     const sessionDate = addDays(weekStart, slot.day_of_week)
-    const { data: session, error: sessionError } = await (supabase as any)
+    const { data: session, error: sessionError } = await supabase
       .from('sessions')
       .insert({
         date: sessionDate,
@@ -101,13 +101,13 @@ export async function POST(request: NextRequest) {
     if (!session) continue
     created.push(session.id)
 
-    const { data: msp } = await (supabase as any)
+    const { data: msp } = await supabase
       .from('master_schedule_players')
       .select('player_id')
       .eq('master_schedule_id', slot.id)
     if (msp?.length) {
-      await (supabase as any).from('session_players').insert(
-        msp.map((p: { player_id: string }) => ({ session_id: session.id, player_id: p.player_id, status: 'confirmed' }))
+      await supabase.from('session_players').insert(
+        msp.map((p: { player_id: string }) => ({ session_id: session.id, player_id: p.player_id, status: 'confirmed' as const }))
       )
     }
   }

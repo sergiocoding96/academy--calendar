@@ -176,8 +176,8 @@ function buildWeeklyMessage(weekStart: string, sessions: SessionRow[]): string {
   return msg.trimEnd()
 }
 
-async function fetchSessions(supabase: any, dateFilter: { eq?: string; gte?: string; lte?: string }) {
-  let query = (supabase as any)
+async function fetchSessions(supabase: Awaited<ReturnType<typeof createClient>>, dateFilter: { eq?: string; gte?: string; lte?: string }) {
+  let query = supabase
     .from('sessions')
     .select(`
       id,

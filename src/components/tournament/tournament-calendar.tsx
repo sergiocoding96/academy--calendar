@@ -142,7 +142,7 @@ export function TournamentCalendar() {
         console.error('Error fetching tournaments:', error)
         setFetchError('Failed to load tournaments. Please try refreshing.')
       } else {
-        setTournaments(data || [])
+        setTournaments((data || []) as unknown as TournamentWithDetails[])
       }
 
       setLoading(false)

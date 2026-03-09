@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
 import { parseBody, changeRequestActionSchema } from '@/lib/validations'
+import type { Json } from '@/types/database'
 
 type ApplyResult = { ok: true } | { ok: false; error: string }
 
@@ -31,7 +32,7 @@ async function applyChange(
       if (!targetSessionId || typeof payload?.start_time !== 'string' || typeof payload?.end_time !== 'string') {
         return { ok: false, error: 'Invalid move_time payload' }
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('sessions')
         .update({ start_time: payload.start_time, end_time: payload.end_time })
         .eq('id', targetSessionId)
@@ -42,7 +43,7 @@ async function applyChange(
       if (!targetSessionId || payload?.court_id == null) {
         return { ok: false, error: 'Invalid change_court payload' }
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('sessions')
         .update({ court_id: payload.court_id as string })
         .eq('id', targetSessionId)
@@ -51,18 +52,18 @@ async function applyChange(
     }
     case 'cancel_session': {
       if (!targetSessionId) return { ok: false, error: 'Missing target session' }
-      const { data: session } = await (supabase as any)
+      const { data: session } = await supabase
         .from('sessions')
         .select('notes')
         .eq('id', targetSessionId)
         .single()
       const notes = session?.notes ? `${session.notes} [Cancelled]` : '[Cancelled]'
-      const { error: updateErr } = await (supabase as any)
+      const { error: updateErr } = await supabase
         .from('sessions')
         .update({ notes })
         .eq('id', targetSessionId)
       if (updateErr) return { ok: false, error: updateErr.message }
-      await (supabase as any)
+      await supabase
         .from('session_players')
         .update({ status: 'cancelled' })
         .eq('session_id', targetSessionId)
@@ -72,7 +73,7 @@ async function applyChange(
       if (!targetSessionId || typeof payload?.player_id !== 'string') {
         return { ok: false, error: 'Invalid remove_player payload' }
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('session_players')
         .delete()
         .eq('session_id', targetSessionId)
@@ -84,7 +85,7 @@ async function applyChange(
       if (!targetSessionId || typeof payload?.player_id !== 'string') {
         return { ok: false, error: 'Invalid add_player payload' }
       }
-      const { error } = await (supabase as any).from('session_players').insert({
+      const { error } = await supabase.from('session_players').insert({
         session_id: targetSessionId,
         player_id: payload.player_id,
         status: 'confirmed',
@@ -112,7 +113,7 @@ async function applyChange(
         }
       }
 
-      const { data: inserted, error } = await (supabase as any)
+      const { data: inserted, error } = await supabase
         .from('sessions')
         .insert({
           date,
@@ -136,7 +137,7 @@ async function applyChange(
       return { ok: false, error: `Unknown change type: ${changeType}` }
   }
 
-  const { error: auditError } = await (supabase as any).from('schedule_audit_log').insert({
+  const { error: auditError } = await supabase.from('schedule_audit_log').insert({
     change_request_id: requestId,
     action: 'applied',
     performed_by: approvedBy,
@@ -164,7 +165,7 @@ export async function PATCH(
   const { action, modified_payload, reject_reason } = parsed.data
 
   const supabase = await createClient()
-  const { data: req, error: fetchError } = await (supabase as any)
+  const { data: req, error: fetchError } = await supabase
     .from('schedule_change_requests')
     .select('id, change_type, target_session_id, status, reason, proposed_payload, approved_payload, proposer_id')
     .eq('id', id)
@@ -186,7 +187,7 @@ export async function PATCH(
   let playerName: string | undefined
   try {
     if (req.target_session_id) {
-      const { data: sess } = await (supabase as any)
+      const { data: sess } = await supabase
         .from('sessions')
         .select('date, start_time, session_type, court:courts(name), coach:coaches(name)')
         .eq('id', req.target_session_id)
@@ -204,16 +205,17 @@ export async function PATCH(
       }
     }
     if (req.proposer_id) {
-      const { data: proposer } = await (supabase as any)
+      const { data: proposer } = await supabase
         .from('user_profiles')
         .select('full_name')
         .eq('id', req.proposer_id)
         .single()
-      proposerName = proposer?.full_name
+      proposerName = proposer?.full_name ?? undefined
     }
-    const playerIdInPayload = req.proposed_payload?.player_id as string | undefined
+    const payload = req.proposed_payload as Record<string, unknown> | null
+    const playerIdInPayload = payload?.player_id as string | undefined
     if (playerIdInPayload) {
-      const { data: pl } = await (supabase as any)
+      const { data: pl } = await supabase
         .from('players')
         .select('full_name, name')
         .eq('id', playerIdInPayload)
@@ -225,7 +227,7 @@ export async function PATCH(
   }
 
   if (action === 'reject') {
-    await (supabase as any)
+    await supabase
       .from('schedule_change_requests')
       .update({
         status: 'rejected',
@@ -235,7 +237,7 @@ export async function PATCH(
         updated_at: now,
       })
       .eq('id', id)
-    await (supabase as any).from('schedule_audit_log').insert({
+    await supabase.from('schedule_audit_log').insert({
       change_request_id: id,
       action: 'rejected',
       performed_by: profile.id,
@@ -281,11 +283,11 @@ export async function PATCH(
     )
   }
 
-  await (supabase as any)
+  await supabase
     .from('schedule_change_requests')
     .update({
       status: action === 'modify_approve' ? 'modified_approved' : 'approved',
-      approved_payload: action === 'modify_approve' ? modified_payload : req.approved_payload,
+      approved_payload: (action === 'modify_approve' ? modified_payload : req.approved_payload) as Json | null,
       approved_by: profile.id,
       approved_at: now,
       updated_at: now,

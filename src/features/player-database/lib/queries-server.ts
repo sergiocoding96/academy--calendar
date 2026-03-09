@@ -5,13 +5,14 @@ import { createClient } from '@/lib/supabase/server'
 import type {
   PlayerFilterOptions,
   Player,
-  Profile,
   PlayerWithDetails,
   DateRange,
 } from '../types'
 
+type CoachInfo = { id: string; name: string; email: string | null } | null
+
 type PlayerWithCoach = Player & {
-  coach?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
+  coach?: CoachInfo
 }
 
 function normalisePlayer(row: Record<string, unknown>): PlayerWithCoach {
@@ -32,7 +33,7 @@ export async function getPlayersServer(
 
   let query = supabase
     .from('players')
-    .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
+    .select('*, coach:coaches(id, name, email)')
     .order('full_name')
 
   if (filters?.category) query = query.eq('category', filters.category)
@@ -53,7 +54,7 @@ export async function getPlayersServer(
 }
 
 export async function getCoachesServer(): Promise<
-  Pick<Profile, 'id' | 'full_name' | 'avatar_url'>[]
+  { id: string; full_name: string | null; avatar_url: string | null }[]
 > {
   const supabase = await createClient()
 
@@ -71,7 +72,7 @@ export async function getCoachesServer(): Promise<
     .order('name')
 
   if (fb.error) throw fb.error
-  return (fb.data || []).map((c: { id: string; name: string; email?: string }) => ({
+  return (fb.data || []).map((c: { id: string; name: string; email: string | null }) => ({
     id: c.id,
     full_name: c.name,
     avatar_url: null,
@@ -82,18 +83,18 @@ async function getPlayerServer(playerId: string): Promise<PlayerWithCoach> {
   const supabase = await createClient()
 
   // Try full schema with coach join first
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('players')
-    .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
+    .select('*, coach:coaches(id, name, email)')
     .eq('id', playerId)
     .single()
 
   if (!error && data) {
-    return data as PlayerWithCoach
+    return data as unknown as PlayerWithCoach
   }
 
-  // Fallback: plain select (no profiles relationship in this project)
-  const fb = await (supabase as any)
+  // Fallback: plain select (no coach join)
+  const fb = await supabase
     .from('players')
     .select('*')
     .eq('id', playerId)

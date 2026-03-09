@@ -69,11 +69,12 @@ export function RegisterForm() {
         const { data: playerData, error: playerError } = await supabase
           .from('players')
           .insert({
+            full_name: fullName,
             name: fullName,
-            contact_email: email,
-          } as any)
+            email: email,
+          })
           .select('id')
-          .single() as { data: { id: string } | null, error: any }
+          .single()
 
         if (playerError || !playerData) {
           setError(playerError?.message ?? 'Failed to create player profile. Ensure the database has the players table (run Supabase migration).')
@@ -87,9 +88,9 @@ export function RegisterForm() {
           .insert({
             name: fullName,
             email: email,
-          } as any)
+          })
           .select('id')
-          .single() as { data: { id: string } | null, error: any }
+          .single()
 
         if (coachError || !coachData) {
           setError(coachError?.message ?? 'Failed to create coach profile. Ensure the database has the coaches table (run Supabase migration).')
@@ -109,7 +110,7 @@ export function RegisterForm() {
         role: safeRole,
         player_id: playerId,
         coach_id: coachId,
-      } as any)
+      })
 
       if (profileError) {
         setError(profileError.message)

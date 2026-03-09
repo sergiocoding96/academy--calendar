@@ -6,11 +6,13 @@
 // still loads.
 
 import { createClient } from '@/lib/supabase/client'
-import type { PlayerFilterOptions, DateRange, Player, PlayerWithDetails, Profile } from '../types'
+import type { PlayerFilterOptions, DateRange, Player, PlayerWithDetails } from '../types'
+
+type CoachInfo = { id: string; name: string; email: string | null } | null
 
 // Player with coach relation type
 type PlayerWithCoach = Player & {
-  coach?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
+  coach?: CoachInfo
 }
 
 /** Normalise a row from the old schema (name, status, primary_coach_id) into
@@ -33,7 +35,7 @@ export async function getPlayer(playerId: string): Promise<PlayerWithCoach> {
   // Try full schema with coach join
   const { data, error } = await supabase
     .from('players')
-    .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
+    .select('*, coach:coaches(id, name, email)')
     .eq('id', playerId)
     .single()
 
@@ -51,7 +53,7 @@ export async function getPlayers(filters?: PlayerFilterOptions): Promise<PlayerW
   // Try full schema
   let query = supabase
     .from('players')
-    .select('*, coach:profiles!coach_id(id, full_name, avatar_url)')
+    .select('*, coach:coaches(id, name, email)')
     .order('full_name')
 
   if (filters?.category) query = query.eq('category', filters.category)

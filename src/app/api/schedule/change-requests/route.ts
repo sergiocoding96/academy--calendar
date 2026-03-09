@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
 import { parseBody, changeRequestCreateSchema, statusQuerySchema } from '@/lib/validations'
+import type { Json } from '@/types/database'
 
 export async function GET(request: NextRequest) {
   const profile = await getUserProfile()
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
   const status = statusResult.success ? statusResult.data : 'pending'
 
   const supabase = await createClient()
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('schedule_change_requests')
     .select(`
       id,
@@ -58,14 +59,14 @@ export async function POST(request: NextRequest) {
   const body = parsed.data
 
   const supabase = await createClient()
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('schedule_change_requests')
     .insert({
       proposer_id: profile.id,
       change_type: body.change_type,
       target_session_id: body.target_session_id || null,
       reason: body.reason,
-      proposed_payload: body.proposed_payload || null,
+      proposed_payload: (body.proposed_payload || null) as Json | null,
       status: 'pending',
     })
     .select('id')

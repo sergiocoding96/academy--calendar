@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { PlayerCategory } from '@/types/database'
 import {
   MOCK_CALENDAR_TOURNAMENTS,
   MOCK_PLAYERS,
@@ -379,7 +380,7 @@ export async function listPlayers(input: PlayerQuery): Promise<ActionToolResult>
       .order('name', { ascending: true })
 
     if (input.category) {
-      query = query.eq('category', input.category)
+      query = query.eq('category', input.category as PlayerCategory)
     }
 
     if (input.coach_id) {
@@ -601,7 +602,7 @@ export async function getCalendarSummary(input: CalendarQuery): Promise<ActionTo
     type TournamentWithAssignments = Record<string, unknown> & {
       tournament_assignments?: Array<{ role: string }>
     }
-    const tournamentList = (tournaments || []) as TournamentWithAssignments[]
+    const tournamentList = (tournaments || []) as unknown as TournamentWithAssignments[]
 
     const playerAssignments = tournamentList.reduce((acc, t) =>
       acc + (t.tournament_assignments?.filter((a) => a.role === 'player').length || 0), 0
