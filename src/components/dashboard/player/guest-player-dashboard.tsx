@@ -120,9 +120,10 @@ export function GuestPlayerDashboard() {
 
           <div className="space-y-3">
             {upcomingSessions.map((session, index) => (
-              <div
+              <Link
                 key={index}
-                className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
+                href="/dashboard/player/schedule"
+                className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
               >
                 <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-red-600" />
@@ -138,7 +139,7 @@ export function GuestPlayerDashboard() {
                 <span className="text-xs text-stone-400">
                   {session.court?.name}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -154,9 +155,10 @@ export function GuestPlayerDashboard() {
 
           <div className="space-y-3">
             {upcomingTournaments.map((tournament, index) => (
-              <div
+              <Link
                 key={index}
-                className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
+                href="/dashboard/player/tournaments"
+                className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
               >
                 <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
                   <Trophy className="w-5 h-5 text-amber-600" />
@@ -169,7 +171,7 @@ export function GuestPlayerDashboard() {
                     {formatDate(tournament.start_date)} • {tournament.location}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

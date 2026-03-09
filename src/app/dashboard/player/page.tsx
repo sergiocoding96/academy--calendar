@@ -205,9 +205,10 @@ export default async function PlayerDashboardPage() {
           {upcomingSessions && upcomingSessions.length > 0 ? (
             <div className="space-y-3">
               {upcomingSessions.map((item) => (
-                <div
+                <Link
                   key={item.session?.id ?? `session-${crypto.randomUUID()}`}
-                  className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
+                  href="/dashboard/player/schedule"
+                  className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
                 >
                   <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                     <Calendar className="w-5 h-5 text-red-600" />
@@ -223,7 +224,7 @@ export default async function PlayerDashboardPage() {
                   <span className="text-xs text-stone-400">
                     {(Array.isArray(item.session?.court) ? item.session.court[0] : item.session?.court)?.name}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
@@ -246,9 +247,10 @@ export default async function PlayerDashboardPage() {
           {upcomingTournaments && upcomingTournaments.length > 0 ? (
             <div className="space-y-3">
               {upcomingTournaments.map((tournament) => (
-                <div
+                <Link
                   key={tournament.id}
-                  className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg"
+                  href="/dashboard/player/tournaments"
+                  className="flex items-center gap-4 p-3 bg-stone-50 rounded-lg hover:bg-stone-100 transition-colors"
                 >
                   <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
                     <Trophy className="w-5 h-5 text-amber-600" />
@@ -261,7 +263,7 @@ export default async function PlayerDashboardPage() {
                       {formatDate(tournament.start_date)} • {tournament.location}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

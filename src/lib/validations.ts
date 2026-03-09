@@ -100,6 +100,21 @@ export const masterScheduleUpdateSchema = z.object({
 })
 
 // ---------------------------------------------------------------------------
+// Session creation (direct, with player assignment)
+// ---------------------------------------------------------------------------
+
+export const sessionCreateSchema = z.object({
+  date: dateString,
+  start_time: timeString,
+  end_time: timeString,
+  court_id: z.string().uuid().nullable().optional(),
+  coach_id: z.string().uuid().nullable().optional(),
+  session_type: z.string().min(1).optional(),
+  notes: z.string().optional(),
+  player_ids: z.array(z.string().uuid()).optional(),
+})
+
+// ---------------------------------------------------------------------------
 // Week generation
 // ---------------------------------------------------------------------------
 

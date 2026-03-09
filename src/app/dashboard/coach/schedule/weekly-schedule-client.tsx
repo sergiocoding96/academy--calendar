@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Edit3, Send } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Edit3, Send, Plus, X, Search } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { formatTime } from '@/lib/utils'
 
@@ -59,6 +59,75 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
   const [addPlayerReason, setAddPlayerReason] = useState('')
   const [addPlayerSubmitting, setAddPlayerSubmitting] = useState(false)
   const [addPlayerError, setAddPlayerError] = useState<string | null>(null)
+
+  // Create session state
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createDate, setCreateDate] = useState('')
+  const [createStartTime, setCreateStartTime] = useState('09:00')
+  const [createEndTime, setCreateEndTime] = useState('10:00')
+  const [createCourtId, setCreateCourtId] = useState('')
+  const [createCoachId, setCreateCoachId] = useState('')
+  const [createSessionType, setCreateSessionType] = useState('training')
+  const [createNotes, setCreateNotes] = useState('')
+  const [createPlayerIds, setCreatePlayerIds] = useState<string[]>([])
+  const [createPlayerSearch, setCreatePlayerSearch] = useState('')
+  const [createSubmitting, setCreateSubmitting] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  const openCreateSession = (date?: string) => {
+    setCreateDate(date || weekStart)
+    setCreateStartTime('09:00')
+    setCreateEndTime('10:00')
+    setCreateCourtId('')
+    setCreateCoachId('')
+    setCreateSessionType('training')
+    setCreateNotes('')
+    setCreatePlayerIds([])
+    setCreatePlayerSearch('')
+    setCreateError(null)
+    setCreateOpen(true)
+  }
+
+  const toggleCreatePlayer = (playerId: string) => {
+    setCreatePlayerIds((prev) =>
+      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]
+    )
+  }
+
+  const submitCreateSession = async () => {
+    if (!createDate || !createStartTime || !createEndTime) {
+      setCreateError('Date and times are required')
+      return
+    }
+    setCreateSubmitting(true)
+    setCreateError(null)
+    try {
+      const res = await fetch('/api/schedule/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: createDate,
+          start_time: createStartTime,
+          end_time: createEndTime,
+          court_id: createCourtId || null,
+          coach_id: createCoachId || null,
+          session_type: createSessionType || 'training',
+          notes: createNotes || undefined,
+          player_ids: createPlayerIds.length > 0 ? createPlayerIds : undefined,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok && res.status !== 207) {
+        setCreateError(data.error || 'Failed to create session')
+        return
+      }
+      setCreateOpen(false)
+      await loadWeek(weekStart)
+      router.refresh()
+    } finally {
+      setCreateSubmitting(false)
+    }
+  }
 
   const loadWeek = async (start: string) => {
     const res = await fetch(`/api/schedule/week?week=${start}`)
@@ -295,6 +364,14 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
           </button>
           <button
             type="button"
+            onClick={() => openCreateSession()}
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            New Session
+          </button>
+          <button
+            type="button"
             onClick={generateWeek}
             disabled={generating}
             className="px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-700 disabled:opacity-50 text-sm font-medium"
@@ -312,9 +389,17 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
         <div className="grid grid-cols-7 divide-x divide-stone-200">
           {weekDates.map((date) => (
             <div key={date} className="min-h-[120px]">
-              <div className="p-3 border-b border-stone-200 bg-stone-50 text-center">
+              <div className="p-3 border-b border-stone-200 bg-stone-50 text-center relative group">
                 <p className="text-xs text-stone-500">{DAYS[(() => { const d = new Date(date + 'T00:00:00').getDay(); return d === 0 ? 6 : d - 1; })()]}</p>
                 <p className="font-medium text-stone-800">{date.slice(8)}</p>
+                <button
+                  type="button"
+                  onClick={() => openCreateSession(date)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Create session"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
               </div>
               <div className="p-2 space-y-2">
                 {(sessionsByDate[date] || []).map((session) => {
@@ -414,6 +499,205 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
               {submitting ? 'Submitting...' : 'Submit for approval'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Create Session Modal */}
+      <Modal
+        isOpen={createOpen}
+        onClose={() => !createSubmitting && setCreateOpen(false)}
+        title="Create new session"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Date *</label>
+              <input
+                type="date"
+                value={createDate}
+                onChange={(e) => setCreateDate(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={createSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Type</label>
+              <select
+                value={createSessionType}
+                onChange={(e) => setCreateSessionType(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                disabled={createSubmitting}
+              >
+                <option value="training">Training</option>
+                <option value="match_play">Match Play</option>
+                <option value="fitness">Fitness</option>
+                <option value="private_lesson">Private Lesson</option>
+                <option value="group_lesson">Group Lesson</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Start time *</label>
+              <input
+                type="time"
+                value={createStartTime}
+                onChange={(e) => setCreateStartTime(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={createSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">End time *</label>
+              <input
+                type="time"
+                value={createEndTime}
+                onChange={(e) => setCreateEndTime(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                disabled={createSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Court</label>
+              <select
+                value={createCourtId}
+                onChange={(e) => setCreateCourtId(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                disabled={createSubmitting}
+              >
+                <option value="">No court</option>
+                {courts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Coach</label>
+              <select
+                value={createCoachId}
+                onChange={(e) => setCreateCoachId(e.target.value)}
+                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                disabled={createSubmitting}
+              >
+                <option value="">No coach</option>
+                {coaches.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Notes</label>
+            <input
+              type="text"
+              value={createNotes}
+              onChange={(e) => setCreateNotes(e.target.value)}
+              placeholder="Optional notes"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={createSubmitting}
+            />
+          </div>
+
+          {/* Multi-select player picker */}
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">
+              Players {createPlayerIds.length > 0 && <span className="text-blue-600">({createPlayerIds.length} selected)</span>}
+            </label>
+
+            {/* Selected players chips */}
+            {createPlayerIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {createPlayerIds.map((pid) => {
+                  const p = players.find((pl) => pl.id === pid)
+                  return (
+                    <span
+                      key={pid}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                    >
+                      {p?.name ?? 'Unknown'}
+                      <button
+                        type="button"
+                        onClick={() => toggleCreatePlayer(pid)}
+                        className="hover:text-blue-600"
+                        disabled={createSubmitting}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-stone-400" />
+              <input
+                type="text"
+                value={createPlayerSearch}
+                onChange={(e) => setCreatePlayerSearch(e.target.value)}
+                placeholder="Search players..."
+                className="w-full pl-8 pr-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                disabled={createSubmitting}
+              />
+            </div>
+
+            {/* Player list */}
+            <div className="mt-1.5 max-h-40 overflow-y-auto border border-stone-200 rounded-lg divide-y divide-stone-100">
+              {players.length === 0 ? (
+                <p className="p-3 text-sm text-stone-500 text-center">No players in system</p>
+              ) : (
+                players
+                  .filter((p) => !createPlayerSearch || p.name.toLowerCase().includes(createPlayerSearch.toLowerCase()))
+                  .map((p) => {
+                    const isSelected = createPlayerIds.includes(p.id)
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => toggleCreatePlayer(p.id)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-stone-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                        disabled={createSubmitting}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-stone-300'}`}>
+                          {isSelected && <span className="text-white text-xs">&#10003;</span>}
+                        </div>
+                        <span className={isSelected ? 'font-medium text-blue-800' : 'text-stone-700'}>{p.name}</span>
+                      </button>
+                    )
+                  })
+              )}
+              {players.length > 0 && createPlayerSearch && players.filter((p) => p.name.toLowerCase().includes(createPlayerSearch.toLowerCase())).length === 0 && (
+                <p className="p-3 text-sm text-stone-500 text-center">No players match &ldquo;{createPlayerSearch}&rdquo;</p>
+              )}
+            </div>
+          </div>
+
+          {createError && <p className="text-sm text-red-600">{createError}</p>}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setCreateOpen(false)}
+              disabled={createSubmitting}
+              className="px-4 py-2 text-stone-600 hover:text-stone-800 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submitCreateSession}
+              disabled={createSubmitting || !createDate || !createStartTime || !createEndTime}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {createSubmitting ? 'Creating...' : 'Create Session'}
             </button>
           </div>
         </div>

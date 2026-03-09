@@ -52,7 +52,10 @@ export function GuestCoachDashboard() {
           </div>
         </Link>
 
-        <div className="bg-white p-6 rounded-xl border border-stone-200">
+        <Link
+          href="/dashboard/coach/sessions"
+          className="bg-white p-6 rounded-xl border border-stone-200 hover:border-red-200 hover:shadow-md transition-all"
+        >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <Calendar className="w-6 h-6 text-green-600" />
@@ -62,9 +65,12 @@ export function GuestCoachDashboard() {
               <p className="text-2xl font-bold text-stone-800">{MOCK_COACH_STATS.todaySessionsCount}</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-xl border border-stone-200">
+        <Link
+          href="/dashboard/coach/schedule"
+          className="bg-white p-6 rounded-xl border border-stone-200 hover:border-red-200 hover:shadow-md transition-all"
+        >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
               <ClipboardList className="w-6 h-6 text-amber-600" />
@@ -74,7 +80,7 @@ export function GuestCoachDashboard() {
               <p className="text-2xl font-bold text-stone-800">{MOCK_COACH_STATS.weekSessionsCount} sessions</p>
             </div>
           </div>
-        </div>
+        </Link>
 
         <Link
           href="/dashboard/coach/tournaments"
