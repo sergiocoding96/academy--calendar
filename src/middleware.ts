@@ -41,10 +41,14 @@ export async function middleware(request: NextRequest) {
             return request.cookies.getAll()
           },
           setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+            // Forward refreshed cookies to the request so downstream
+            // server components (layouts, pages) see the updated tokens
+            // instead of the stale ones from the original request.
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
             response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
+              request,
             })
             cookiesToSet.forEach(({ name, value, options }) =>
               response.cookies.set(name, value, options)
