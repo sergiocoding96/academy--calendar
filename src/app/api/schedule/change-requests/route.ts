@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
+import { parseBody, changeRequestCreateSchema, statusQuerySchema } from '@/lib/validations'
 
 export async function GET(request: NextRequest) {
   const profile = await getUserProfile()
@@ -10,7 +11,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const status = searchParams.get('status') || 'pending'
+  const statusResult = statusQuerySchema.safeParse(searchParams.get('status') ?? undefined)
+  const status = statusResult.success ? statusResult.data : 'pending'
 
   const supabase = await createClient()
   const { data, error } = await (supabase as any)
@@ -51,28 +53,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let body: {
-    change_type: string
-    target_session_id?: string
-    reason: string
-    proposed_payload?: Record<string, unknown>
-  }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const validTypes = ['move_time', 'change_court', 'cancel_session', 'add_session', 'remove_player', 'add_player']
-  if (!validTypes.includes(body.change_type)) {
-    return NextResponse.json({ error: 'Invalid change_type' }, { status: 400 })
-  }
-  if (!body.reason?.trim()) {
-    return NextResponse.json({ error: 'reason required' }, { status: 400 })
-  }
-  if (body.change_type !== 'add_session' && !body.target_session_id) {
-    return NextResponse.json({ error: 'target_session_id required for this change_type' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, changeRequestCreateSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const supabase = await createClient()
   const { data, error } = await (supabase as any)
@@ -81,7 +64,7 @@ export async function POST(request: NextRequest) {
       proposer_id: profile.id,
       change_type: body.change_type,
       target_session_id: body.target_session_id || null,
-      reason: body.reason.trim(),
+      reason: body.reason,
       proposed_payload: body.proposed_payload || null,
       status: 'pending',
     })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
+import { parseBody, changeRequestActionSchema } from '@/lib/validations'
 
 type ApplyResult = { ok: true } | { ok: false; error: string }
 
@@ -158,17 +159,9 @@ export async function PATCH(
   }
 
   const { id } = await params
-  let body: { action: 'approve' | 'reject' | 'modify_approve'; modified_payload?: Record<string, unknown>; reject_reason?: string }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const { action, modified_payload, reject_reason } = body
-  if (!['approve', 'reject', 'modify_approve'].includes(action)) {
-    return NextResponse.json({ error: 'action must be approve, reject, or modify_approve' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, changeRequestActionSchema)
+  if (!parsed.success) return parsed.response
+  const { action, modified_payload, reject_reason } = parsed.data
 
   const supabase = await createClient()
   const { data: req, error: fetchError } = await (supabase as any)

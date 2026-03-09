@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
+import { parseBody, masterScheduleCreateSchema } from '@/lib/validations'
 
 export async function GET() {
   const profile = await getUserProfile()
@@ -47,29 +48,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let body: {
-    day_of_week: number
-    start_time: string
-    end_time: string
-    court_id?: string
-    coach_id?: string
-    session_type?: string
-    notes?: string
-    player_ids?: string[]
-  }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const { day_of_week, start_time, end_time, court_id, coach_id, session_type, notes, player_ids } = body
-  if (typeof day_of_week !== 'number' || day_of_week < 0 || day_of_week > 6) {
-    return NextResponse.json({ error: 'day_of_week must be 0-6' }, { status: 400 })
-  }
-  if (!start_time || !end_time) {
-    return NextResponse.json({ error: 'start_time and end_time required' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, masterScheduleCreateSchema)
+  if (!parsed.success) return parsed.response
+  const { day_of_week, start_time, end_time, court_id, coach_id, session_type, notes, player_ids } = parsed.data
 
   const supabase = await createClient()
   const { data: slot, error: slotError } = await (supabase as any)

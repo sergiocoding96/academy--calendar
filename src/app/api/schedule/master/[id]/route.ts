@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
+import { parseBody, masterScheduleUpdateSchema } from '@/lib/validations'
 
 export async function PATCH(
   request: NextRequest,
@@ -12,30 +13,18 @@ export async function PATCH(
   }
 
   const { id } = await params
-  let body: {
-    day_of_week?: number
-    start_time?: string
-    end_time?: string
-    court_id?: string | null
-    coach_id?: string | null
-    session_type?: string
-    notes?: string | null
-    player_ids?: string[]
-  }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, masterScheduleUpdateSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const supabase = await createClient()
   const updates: Record<string, unknown> = {}
-  if (typeof body.day_of_week === 'number' && body.day_of_week >= 0 && body.day_of_week <= 6) updates.day_of_week = body.day_of_week
-  if (typeof body.start_time === 'string') updates.start_time = body.start_time
-  if (typeof body.end_time === 'string') updates.end_time = body.end_time
+  if (body.day_of_week !== undefined) updates.day_of_week = body.day_of_week
+  if (body.start_time !== undefined) updates.start_time = body.start_time
+  if (body.end_time !== undefined) updates.end_time = body.end_time
   if (body.court_id !== undefined) updates.court_id = body.court_id
   if (body.coach_id !== undefined) updates.coach_id = body.coach_id
-  if (typeof body.session_type === 'string') updates.session_type = body.session_type
+  if (body.session_type !== undefined) updates.session_type = body.session_type
   if (body.notes !== undefined) updates.notes = body.notes
 
   if (Object.keys(updates).length > 0) {

@@ -3,6 +3,7 @@ import { executeChat, continueWithToolResults, isConfigured } from '@/lib/agent/
 import type { Message } from '@/lib/agent/claude/client'
 import type { ToolResult } from '@/types/agent'
 import { createClient } from '@/lib/supabase/server'
+import { chatMessageSchema } from '@/lib/validations'
 import {
   queryTournaments,
   getTournamentDetails,
@@ -146,18 +147,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body: ChatRequestBody = await request.json()
-    const { message, history = [] } = body
-
-    if (!message || typeof message !== 'string') {
+    let raw: unknown
+    try { raw = await request.json() } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+    }
+    const result = chatMessageSchema.safeParse(raw)
+    if (!result.success) {
       return new Response(
-        JSON.stringify({ error: 'Message is required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'Validation failed', issues: result.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })) }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
+    const body = result.data
+    const { message, history } = body
 
     // Build conversation messages
     const messages: Message[] = [

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
+import { parseBody, weekGenerateSchema, weekQuerySchema } from '@/lib/validations'
 
 function getWeekBounds(weekStart: string) {
   const start = new Date(weekStart + 'T00:00:00Z')
@@ -23,12 +24,12 @@ export async function GET(request: NextRequest) {
   if (!profile) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
-  const week = searchParams.get('week')
-  if (!week || !/^\d{4}-\d{2}-\d{2}$/.test(week)) {
+  const weekResult = weekQuerySchema.safeParse(searchParams.get('week'))
+  if (!weekResult.success) {
     return NextResponse.json({ error: 'week query param required (YYYY-MM-DD, Monday)' }, { status: 400 })
   }
 
-  const { start, end } = getWeekBounds(week)
+  const { start, end } = getWeekBounds(weekResult.data)
   const supabase = await createClient()
   const { data, error } = await (supabase as any)
     .from('sessions')
@@ -65,17 +66,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let body: { week_start: string }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const weekStart = body.week_start
-  if (!weekStart || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
-    return NextResponse.json({ error: 'week_start required (YYYY-MM-DD, Monday)' }, { status: 400 })
-  }
+  const parsed = await parseBody(request, weekGenerateSchema)
+  if (!parsed.success) return parsed.response
+  const { week_start: weekStart } = parsed.data
 
   const supabase = await createClient()
   const { data: slots, error: slotsError } = await (supabase as any)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getUserProfile } from '@/lib/auth'
+import { parseBody, absenceSchema } from '@/lib/validations'
 
 export async function POST(
   _request: NextRequest,
@@ -17,17 +18,9 @@ export async function POST(
     return NextResponse.json({ error: 'Only players can mark themselves absent' }, { status: 403 })
   }
 
-  let body: { reason?: string }
-  try {
-    body = await _request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
-
-  const reason = typeof body.reason === 'string' ? body.reason.trim() : ''
-  if (!reason) {
-    return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
-  }
+  const parsed = await parseBody(_request, absenceSchema)
+  if (!parsed.success) return parsed.response
+  const { reason } = parsed.data
 
   const supabase = await createClient()
 
