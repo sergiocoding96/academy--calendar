@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/components/auth/auth-provider'
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus'
 import { GuestCoachDashboard } from './guest-coach-dashboard'
 
 interface CoachDashboardWrapperProps {
@@ -9,6 +10,7 @@ interface CoachDashboardWrapperProps {
 
 export function CoachDashboardWrapper({ children }: CoachDashboardWrapperProps) {
   const { isGuest } = useAuth()
+  useRefreshOnFocus()
 
   // Guest check — show guest view immediately
   if (isGuest) {

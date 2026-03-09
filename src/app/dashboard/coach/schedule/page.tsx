@@ -20,10 +20,24 @@ export default async function CoachSchedulePage() {
   weekEndDate.setDate(weekEndDate.getDate() + 6)
   const weekEnd = weekEndDate.toISOString().slice(0, 10)
 
-  let sessions: any[] = []
-  let courts: any[] = []
-  let coaches: any[] = []
-  let players: any[] = []
+  interface ScheduleSession {
+    id: string
+    date: string
+    start_time: string
+    end_time: string
+    session_type: string
+    notes: string | null
+    court: { id: string; name: string } | { id: string; name: string }[] | null
+    coach: { id: string; name: string } | { id: string; name: string }[] | null
+    session_players: { id: string; player_id: string; status: string; absent_reason: string | null; player: { id: string; name: string } | { id: string; name: string }[] | null }[]
+  }
+
+  interface IdName { id: string; name: string }
+
+  let sessions: ScheduleSession[] = []
+  let courts: IdName[] = []
+  let coaches: IdName[] = []
+  let players: IdName[] = []
 
   try {
     const [sessionsResult, courtsResult, coachesResult, playersResult] = await Promise.all([
@@ -55,15 +69,15 @@ export default async function CoachSchedulePage() {
       supabase.from('players').select('id, name').order('name'),
     ])
 
-    sessions = sessionsResult.data || []
-    courts = courtsResult.data || []
-    coaches = coachesResult.data || []
-    players = playersResult.data || []
+    sessions = (sessionsResult.data as ScheduleSession[] | null) ?? []
+    courts = (courtsResult.data as IdName[] | null) ?? []
+    coaches = (coachesResult.data as IdName[] | null) ?? []
+    players = (playersResult.data as IdName[] | null) ?? []
   } catch {
     // Queries failed — show empty schedule
   }
 
-  const playersForSelect = players.map((p: any) => ({
+  const playersForSelect = players.map((p) => ({
     id: p.id,
     name: (p.name ?? 'Unknown').trim() || 'Unknown',
   }))

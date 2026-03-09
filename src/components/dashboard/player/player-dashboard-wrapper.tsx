@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/components/auth/auth-provider'
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus'
 import { GuestPlayerDashboard } from './guest-player-dashboard'
 
 interface PlayerDashboardWrapperProps {
@@ -9,6 +10,7 @@ interface PlayerDashboardWrapperProps {
 
 export function PlayerDashboardWrapper({ children }: PlayerDashboardWrapperProps) {
   const { isGuest } = useAuth()
+  useRefreshOnFocus()
 
   if (isGuest) {
     return <GuestPlayerDashboard />

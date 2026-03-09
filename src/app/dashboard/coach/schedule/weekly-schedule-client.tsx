@@ -1,12 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, MapPin, User, ChevronLeft, ChevronRight, Edit3, Send, Plus, X, Search } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, UserPlus, ChevronLeft, ChevronRight, Edit3, Send, Plus, X, Search, XCircle, ArrowRightLeft, Building } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { formatTime } from '@/lib/utils'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+/** Unwrap PostgREST FK join that may return an array or single object */
+function unwrap<T>(val: T | T[] | null | undefined): T | null {
+  if (val == null) return null
+  return Array.isArray(val) ? val[0] ?? null : val
+}
 
 function addDays(dateStr: string, days: number) {
   const d = new Date(dateStr + 'T00:00:00')
@@ -24,10 +30,10 @@ type Session = {
   start_time: string
   end_time: string
   session_type: string
-  notes?: string
-  court?: { id: string; name: string } | null
-  coach?: { id: string; name: string } | null
-  session_players?: Array<{ id: string; player_id: string; status: string; absent_reason?: string; player?: { id: string; name: string } }>
+  notes?: string | null
+  court?: { id: string; name: string } | { id: string; name: string }[] | null
+  coach?: { id: string; name: string } | { id: string; name: string }[] | null
+  session_players?: Array<{ id: string; player_id: string; status: string; absent_reason?: string | null; player?: { id: string; name: string } | { id: string; name: string }[] | null }>
 }
 
 type Props = {
@@ -129,13 +135,29 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
     }
   }
 
-  const loadWeek = async (start: string) => {
+  const loadWeek = useCallback(async (start: string) => {
     const res = await fetch(`/api/schedule/week?week=${start}`)
     if (res.ok) {
       const data = await res.json()
       setSessions(data)
     }
-  }
+  }, [])
+
+  // Refetch sessions when tab regains focus (cross-tab sync)
+  const weekStartRef = useRef(weekStart)
+  weekStartRef.current = weekStart
+  useEffect(() => {
+    let lastHidden = Date.now()
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastHidden > 5_000) {
+        loadWeek(weekStartRef.current)
+      } else if (document.visibilityState === 'hidden') {
+        lastHidden = Date.now()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [loadWeek])
 
   const prevWeek = () => {
     const prev = addDays(weekStart, -7)
@@ -280,8 +302,9 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
         payload.start_time = selectedSession.start_time
         payload.end_time = selectedSession.end_time
       }
-      if (changeType === 'change_court' && selectedSession.court?.id) {
-        payload.court_id = selectedSession.court.id
+      const courtObj = unwrap(selectedSession.court)
+      if (changeType === 'change_court' && courtObj?.id) {
+        payload.court_id = courtObj.id
       }
       const res = await fetch('/api/schedule/change-requests', {
         method: 'POST',
@@ -401,56 +424,74 @@ export function WeeklyScheduleClient({ initialWeekStart, initialSessions, courts
                   <Plus className="w-3 h-3" />
                 </button>
               </div>
-              <div className="p-2 space-y-2">
+              <div className="p-1.5 space-y-1.5">
                 {(sessionsByDate[date] || []).map((session) => {
                   const isCancelled = session.notes?.includes('[Cancelled]')
                   return (
                   <div
                     key={session.id}
-                    className={`p-2 rounded-lg border text-xs ${isCancelled ? 'border-red-200 bg-red-50 opacity-60' : 'border-stone-200 bg-white'}`}
+                    className={`group/card rounded-lg border text-xs transition-shadow ${isCancelled ? 'border-red-200 bg-red-50 opacity-60' : 'border-stone-200 bg-white hover:shadow-md hover:border-blue-200'}`}
                   >
-                    <p className={`font-medium ${isCancelled ? 'text-red-400 line-through' : 'text-stone-800'}`}>{formatTime(session.start_time)}</p>
-                    <p className={`truncate ${isCancelled ? 'text-red-400 line-through' : 'text-stone-500'}`}>{session.session_type}</p>
-                    {isCancelled && <p className="text-red-500 font-medium mt-0.5">Cancelled</p>}
+                    {/* Session info */}
+                    <div className="p-2 pb-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className={`font-semibold ${isCancelled ? 'text-red-400 line-through' : 'text-stone-800'}`}>
+                          {formatTime(session.start_time)} – {formatTime(session.end_time)}
+                        </p>
+                      </div>
+                      <p className={`truncate capitalize ${isCancelled ? 'text-red-400 line-through' : 'text-stone-600'}`}>
+                        {session.session_type?.replaceAll('_', ' ') || 'Training'}
+                      </p>
+                      {isCancelled && <p className="text-red-500 font-semibold mt-0.5">Cancelled</p>}
+                      {!isCancelled && (
+                        <>
+                          {unwrap(session.court)?.name && (
+                            <p className="text-stone-400 truncate">{unwrap(session.court)!.name}</p>
+                          )}
+                          {session.session_players && session.session_players.length > 0 && (
+                            <p className="text-stone-500 truncate mt-0.5">
+                              {session.session_players.map((sp) => (sp.player as { name?: string; full_name?: string })?.name ?? (sp.player as { full_name?: string })?.full_name ?? '—').join(', ')}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {/* Action bar — visible on hover */}
                     {!isCancelled && (
-                      <>
-                        <p className="text-stone-500 truncate">{session.court?.name || '—'}</p>
-                        {session.session_players && session.session_players.length > 0 && (
-                          <p className="text-stone-500 truncate mt-0.5">
-                            {session.session_players.map((sp) => (sp.player as { name?: string; full_name?: string })?.name ?? (sp.player as { full_name?: string })?.full_name ?? '—').join(', ')}
-                          </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openAddPlayer(session)}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            + Player
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openPropose(session, 'cancel_session')}
-                            className="text-amber-600 hover:text-amber-700"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openPropose(session, 'move_time')}
-                            className="text-stone-600 hover:text-stone-800"
-                          >
-                            Move
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openPropose(session, 'change_court')}
-                            className="text-stone-600 hover:text-stone-800"
-                          >
-                            Court
-                          </button>
-                        </div>
-                      </>
+                      <div className="flex border-t border-stone-100 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => openAddPlayer(session)}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-blue-600 hover:bg-blue-50 transition-colors rounded-bl-lg"
+                          title="Add player"
+                        >
+                          <UserPlus className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPropose(session, 'move_time')}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-stone-500 hover:bg-stone-50 transition-colors border-l border-stone-100"
+                          title="Move time"
+                        >
+                          <ArrowRightLeft className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPropose(session, 'change_court')}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-stone-500 hover:bg-stone-50 transition-colors border-l border-stone-100"
+                          title="Change court"
+                        >
+                          <Building className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPropose(session, 'cancel_session')}
+                          className="flex-1 flex items-center justify-center gap-1 py-1.5 text-red-400 hover:bg-red-50 transition-colors border-l border-stone-100 rounded-br-lg"
+                          title="Cancel session"
+                        >
+                          <XCircle className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
                   )
